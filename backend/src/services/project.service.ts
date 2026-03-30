@@ -74,22 +74,31 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
 
   let taskData = buildFallbackTask(content);
 
-  if (hasOpenAI()) {
-    try {
-      const aiTask = await generateTaskWithAI(content);
-      if (
-        aiTask.title &&
-        aiTask.subject &&
-        aiTask.description &&
-        aiTask.questions.length === 3 &&
-        aiTask.hints.length === 3
-      ) {
-        taskData = aiTask;
-      }
-    } catch (error) {
-      console.error('AI 生成任务失败，已回退模板:', error);
+ if (hasOpenAI()) {
+  try {
+    console.log('✅ 开始调用 Gemini 生成任务');
+    const aiTask = await generateTaskWithAI(content);
+    console.log('✅ Gemini 返回结果:', aiTask);
+
+    if (
+      aiTask.title &&
+      aiTask.subject &&
+      aiTask.description &&
+      aiTask.questions.length === 3 &&
+      aiTask.hints.length === 3
+    ) {
+      taskData = aiTask;
+      console.log('✅ 已使用 Gemini 生成结果');
+    } else {
+      throw new Error(`Gemini 返回格式不完整: ${JSON.stringify(aiTask)}`);
     }
+  } catch (error) {
+    console.error('❌ Gemini 生成任务失败:', error);
+    throw error;
   }
+} else {
+  console.log('⚠️ 未检测到 GEMINI_API_KEY，直接使用模板');
+}
 
   return {
     id: createId('task'),
