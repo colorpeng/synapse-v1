@@ -12,7 +12,7 @@ export const studentRouter = Router();
 
 studentRouter.use(requireAuth, requireRole('student'));
 
-studentRouter.post('/submitInterest', (req, res) => {
+studentRouter.post('/submitInterest', async (req, res) => {
   try {
     const studentId = req.auth!.userId;
     const { type, content } = req.body;
@@ -21,7 +21,7 @@ studentRouter.post('/submitInterest', (req, res) => {
       return res.status(400).json({ message: '请填写兴趣类型和兴趣内容' });
     }
 
-    const result = submitInterest(studentId, type, content);
+    const result = await submitInterest(studentId, type, content);
     res.json({
       message: '兴趣提交成功',
       interest: result.interest,
@@ -56,7 +56,7 @@ studentRouter.get('/getProject', (req, res) => {
   }
 });
 
-studentRouter.post('/submitAnswer', (req, res) => {
+studentRouter.post('/submitAnswer', async (req, res) => {
   try {
     const studentId = req.auth!.userId;
     const { taskId, answer } = req.body;
@@ -65,7 +65,7 @@ studentRouter.post('/submitAnswer', (req, res) => {
       return res.status(400).json({ message: '请填写任务 ID 和作答内容' });
     }
 
-    const result = submitAnswer(studentId, taskId, answer);
+    const result = await submitAnswer(studentId, taskId, answer);
     res.json({ message: '作业提交成功', submission: result });
   } catch (error) {
     res.status(400).json({ message: error instanceof Error ? error.message : '提交失败' });
