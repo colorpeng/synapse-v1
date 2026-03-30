@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { createId, users } from '../data/store.js';
 import type { User, UserRole } from '../types/models.js';
 
-const JWT_SECRET = 'synapse-dev-secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'synapse-dev-secret';
 
 export function registerUser(payload: {
   name: string;
