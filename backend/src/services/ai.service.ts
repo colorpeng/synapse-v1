@@ -1,10 +1,9 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.OPENAI_API_KEY || '';
+const apiKey = process.env.GEMINI_API_KEY || '';
 
-const client = apiKey
-  ? new OpenAI({ apiKey })
-  : null;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }) : null;
 
 type AITaskResult = {
   title: string;
@@ -28,12 +27,12 @@ function extractJson(text: string) {
 }
 
 export function hasOpenAI() {
-  return Boolean(client);
+  return Boolean(model);
 }
 
 export async function generateTaskWithAI(content: string): Promise<AITaskResult> {
-  if (!client) {
-    throw new Error('未配置 OPENAI_API_KEY');
+  if (!model) {
+    throw new Error('未配置 GEMINI_API_KEY');
   }
 
   const prompt = `
@@ -59,12 +58,8 @@ JSON 格式如下：
 4. 输出必须是合法 JSON
 `;
 
-  const response = await client.responses.create({
-    model: 'gpt-5',
-    input: prompt
-  });
-
-  const text = response.output_text?.trim() || '';
+  const result = await model.generateContent(prompt);
+  const text = result.response.text().trim();
   const data = extractJson(text);
 
   return {
@@ -81,8 +76,8 @@ export async function generateFeedbackWithAI(params: {
   subject: string;
   answer: string;
 }): Promise<AIFeedbackResult> {
-  if (!client) {
-    throw new Error('未配置 OPENAI_API_KEY');
+  if (!model) {
+    throw new Error('未配置 GEMINI_API_KEY');
   }
 
   const prompt = `
@@ -108,12 +103,8 @@ JSON 格式如下：
 4. score 必须是整数
 `;
 
-  const response = await client.responses.create({
-    model: 'gpt-5',
-    input: prompt
-  });
-
-  const text = response.output_text?.trim() || '';
+  const result = await model.generateContent(prompt);
+  const text = result.response.text().trim();
   const data = extractJson(text);
 
   let score = Number(data.score || 80);
