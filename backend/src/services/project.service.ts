@@ -77,8 +77,8 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
  if (hasAI()) {
   try {
     console.log('✅ 开始调用 Gemini 生成任务');
-    const aiTask = await generateTaskWithAI(content);
     console.log('✅ Gemini 返回结果:', aiTask);
+    console.error('❌ Gemini 生成任务失败:', error);
 
     if (
       aiTask.title &&
