@@ -1,5 +1,4 @@
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api`;
-
 function getToken() {
   return localStorage.getItem('synapse_token') || '';
 }
