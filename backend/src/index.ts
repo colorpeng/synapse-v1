@@ -11,8 +11,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://synapse-v1-eta.vercel.app'
-  ],
-  credentials: true
+  ]
 }));
 app.use(express.json());
 
@@ -25,5 +24,5 @@ app.use('/api/student', studentRouter);
 app.use('/api/parent', parentRouter);
 
 app.listen(PORT, () => {
-  console.log(`✅ Synapse backend running at http://localhost:${PORT}`);
+  console.log(`✅ Synapse backend running on port ${PORT}`);
 });
