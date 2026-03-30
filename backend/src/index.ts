@@ -8,7 +8,11 @@ const app = express();
 const PORT = 4000;
 
 app.use(cors({
-  origin: '*',
+  origin: [
+    'http://localhost:5173',
+    'https://synapse-v1-eta.vercel.app'
+  ],
+  credentials: true
 }));
 app.use(express.json());
 
