@@ -1,6 +1,6 @@
 import { createId, interests, metrics, submissions, tasks } from '../data/store.js';
 import type { AbilityMetrics, Interest, ProjectTask, Submission } from '../types/models.js';
-import { generateFeedbackWithAI, generateTaskWithAI, hasOpenAI } from './ai.service.js';
+import { generateFeedbackWithAI, generateTaskWithAI, hasAI } from './ai.service.js';
 
 function buildFallbackTask(content: string) {
   const normalized = content.trim();
