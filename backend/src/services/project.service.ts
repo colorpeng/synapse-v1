@@ -74,7 +74,7 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
 
   let taskData = buildFallbackTask(content);
 
- if (hasOpenAI()) {
+ if (hasAI()) {
   try {
     console.log('✅ 开始调用 Gemini 生成任务');
     const aiTask = await generateTaskWithAI(content);
@@ -160,7 +160,7 @@ export async function submitAnswer(studentId: string, taskId: string, answer: st
       ? '你的回答已经有方向了，但还可以再补充实验步骤、数据记录和结论，这样会更像一个完整的项目作品。'
       : '你的作答结构比较完整，已经体现了观察、分析和结论。下一步建议补充对变量变化的解释，让论证更严谨。';
 
-  if (hasOpenAI()) {
+  if (hasAI()) {
     try {
       const aiResult = await generateFeedbackWithAI({
         title: task.title,
