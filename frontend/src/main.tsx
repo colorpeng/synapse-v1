@@ -6,7 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ParentPage } from './pages/ParentPage';
 import { StudentPage } from './pages/StudentPage';
 
-function ProtectedRoute({ children, role }: { children: JSX.Element; role: 'student' | 'parent' }) {
+function ProtectedRoute({ children, role }: { children: React.ReactNode; role: 'student' | 'parent' }) {
   const userRaw = localStorage.getItem('synapse_user');
   const user = userRaw ? JSON.parse(userRaw) : null;
 
