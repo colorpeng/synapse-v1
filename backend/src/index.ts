@@ -23,6 +23,6 @@ app.use('/api/auth', authRouter);
 app.use('/api/student', studentRouter);
 app.use('/api/parent', parentRouter);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Synapse backend running on port ${PORT}`);
 });
