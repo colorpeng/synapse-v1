@@ -8,7 +8,7 @@ authRouter.post('/register', (req, res) => {
     const { name, email, password, role } = req.body;
     const user = registerUser({ name, email, password, role });
     const login = loginUser(email, password);
-    res.json({ message: '注册成功', user, ...login });
+    res.json({ message: '注册成功', ...login });
   } catch (error) {
     res.status(400).json({ message: error instanceof Error ? error.message : '注册失败' });
   }
