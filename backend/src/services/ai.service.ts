@@ -26,7 +26,7 @@ function extractJson(text: string) {
   return JSON.parse(match[0]);
 }
 
-export function hasOpenAI() {
+export function hasAI() {
   return Boolean(model);
 }
 
