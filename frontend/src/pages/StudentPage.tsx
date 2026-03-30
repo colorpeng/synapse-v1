@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import type { ProjectTask, SubmissionResponse } from '../types';
 
@@ -129,7 +129,7 @@ export function StudentPage() {
   );
 }
 
-const cardStyle: React.CSSProperties = {
+const cardStyle: CSSProperties = {
   background: '#fff',
   borderRadius: 18,
   padding: 20,
