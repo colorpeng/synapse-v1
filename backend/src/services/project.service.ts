@@ -1,7 +1,8 @@
 import { createId, interests, metrics, submissions, tasks } from '../data/store.js';
 import type { AbilityMetrics, Interest, ProjectTask, Submission } from '../types/models.js';
+import { generateFeedbackWithAI, generateTaskWithAI, hasOpenAI } from './ai.service.js';
 
-function buildTaskTemplate(content: string) {
+function buildFallbackTask(content: string) {
   const normalized = content.trim();
 
   let subject = '跨学科探究';
@@ -63,49 +64,47 @@ function buildTaskTemplate(content: string) {
       'L2 提示：从轮胎、重量、弯道表现这三个变量入手。',
       'L3 提示：写出你的改装方案和它背后的物理原因。'
     ];
-  } else if (normalized.includes('篮球') || normalized.includes('足球') || normalized.includes('运动')) {
-    subject = '体育 + 数据分析';
-    title = '运动表现中的数据观察与策略分析';
-    description =
-      '请围绕你喜欢的运动项目，记录一次训练或比赛中的关键数据，并分析这些数据与表现之间的关系。';
-    questions = [
-      '哪些数据最能反映你的表现？',
-      '这些数据之间有什么关系？',
-      '你能提出一个改进策略并说明依据吗？'
-    ];
-    hints = [
-      'L1 提示：先选 2-3 个你能记录的数据。',
-      'L2 提示：把数据做成简单表格，再比较高低变化。',
-      'L3 提示：试着从数据中找出一个“提升表现的关键因素”。'
-    ];
   }
 
-  return {
-    subject,
-    title,
-    description,
-    questions,
-    hints
-  };
+  return { title, subject, description, questions, hints };
 }
 
-function generateTaskFromInterest(interest: Interest): ProjectTask {
-  const template = buildTaskTemplate(interest.content);
+async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask> {
+  const content = interest.content.trim();
+
+  let taskData = buildFallbackTask(content);
+
+  if (hasOpenAI()) {
+    try {
+      const aiTask = await generateTaskWithAI(content);
+      if (
+        aiTask.title &&
+        aiTask.subject &&
+        aiTask.description &&
+        aiTask.questions.length === 3 &&
+        aiTask.hints.length === 3
+      ) {
+        taskData = aiTask;
+      }
+    } catch (error) {
+      console.error('AI 生成任务失败，已回退模板:', error);
+    }
+  }
 
   return {
     id: createId('task'),
     studentId: interest.studentId,
     interestId: interest.id,
-    title: template.title,
-    subject: template.subject,
-    description: template.description,
-    questions: template.questions,
-    hints: template.hints,
+    title: taskData.title,
+    subject: taskData.subject,
+    description: taskData.description,
+    questions: taskData.questions,
+    hints: taskData.hints,
     createdAt: new Date().toISOString()
   };
 }
 
-export function submitInterest(studentId: string, type: Interest['type'], content: string) {
+export async function submitInterest(studentId: string, type: Interest['type'], content: string) {
   if (!content || !content.trim()) {
     throw new Error('兴趣内容不能为空');
   }
@@ -120,7 +119,7 @@ export function submitInterest(studentId: string, type: Interest['type'], conten
 
   interests.push(interest);
 
-  const task = generateTaskFromInterest(interest);
+  const task = await generateTaskFromInterest(interest);
   tasks.push(task);
 
   return { interest, task };
@@ -134,7 +133,7 @@ export function getTaskById(studentId: string, taskId: string) {
   return tasks.find((task) => task.id === taskId && task.studentId === studentId) ?? null;
 }
 
-export function submitAnswer(studentId: string, taskId: string, answer: string) {
+export async function submitAnswer(studentId: string, taskId: string, answer: string) {
   const task = tasks.find((item) => item.id === taskId && item.studentId === studentId);
   if (!task) {
     throw new Error('任务不存在');
@@ -145,14 +144,25 @@ export function submitAnswer(studentId: string, taskId: string, answer: string) 
   }
 
   const cleanedAnswer = answer.trim();
-  const scoreBase = Math.min(95, Math.max(60, Math.floor(cleanedAnswer.length / 6) + 55));
 
-  let feedback = '你的作答结构比较完整，已经体现了观察、分析和结论。下一步建议补充对变量变化的解释，让论证更严谨。';
+  let score = Math.min(95, Math.max(60, Math.floor(cleanedAnswer.length / 6) + 55));
+  let feedback =
+    cleanedAnswer.length < 50
+      ? '你的回答已经有方向了，但还可以再补充实验步骤、数据记录和结论，这样会更像一个完整的项目作品。'
+      : '你的作答结构比较完整，已经体现了观察、分析和结论。下一步建议补充对变量变化的解释，让论证更严谨。';
 
-  if (cleanedAnswer.length < 50) {
-    feedback = '你的回答已经有方向了，但还可以再补充实验步骤、数据记录和结论，这样会更像一个完整的项目作品。';
-  } else if (cleanedAnswer.length >= 120) {
-    feedback = '这次提交已经比较像一份真正的项目小报告了。你不仅描述了现象，还尝试解释变量之间的关系。下一步建议加入表格或对比数据，让说服力更强。';
+  if (hasOpenAI()) {
+    try {
+      const aiResult = await generateFeedbackWithAI({
+        title: task.title,
+        subject: task.subject,
+        answer: cleanedAnswer
+      });
+      score = aiResult.score;
+      feedback = aiResult.feedback;
+    } catch (error) {
+      console.error('AI 反馈失败，已回退规则反馈:', error);
+    }
   }
 
   const submission: Submission = {
@@ -161,12 +171,12 @@ export function submitAnswer(studentId: string, taskId: string, answer: string) 
     studentId,
     answer: cleanedAnswer,
     feedback,
-    score: scoreBase,
+    score,
     createdAt: new Date().toISOString()
   };
 
   submissions.push(submission);
-  updateMetrics(studentId, cleanedAnswer.length, scoreBase);
+  updateMetrics(studentId, cleanedAnswer.length, score);
 
   return submission;
 }
