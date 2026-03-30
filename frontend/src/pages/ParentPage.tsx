@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import type { Child, RadarData } from '../types';
 
@@ -96,7 +96,7 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-const cardStyle: React.CSSProperties = {
+const cardStyle: CSSProperties = {
   background: '#fff',
   borderRadius: 18,
   padding: 20,
