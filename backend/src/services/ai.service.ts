@@ -18,6 +18,24 @@ type AIFeedbackResult = {
   score: number;
 };
 
+type AIProfileResult = {
+  tags: string[];
+  strengths: string[];
+  nextFocus: string[];
+};
+
+type AIPathResult = {
+  title: string;
+  steps: string[];
+};
+
+type AIParentAdviceResult = {
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  advice: string[];
+};
+
 function extractJson(text: string) {
   const cleaned = text
     .replace(/```json/gi, '')
@@ -56,15 +74,7 @@ JSON 格式如下：
   "questions": ["问题1", "问题2", "问题3"],
   "hints": ["L1 提示...", "L2 提示...", "L3 提示..."]
 }
-
-要求：
-1. 任务必须具体、可执行
-2. 问题数量固定为 3 个
-3. 提示数量固定为 3 个
-4. 输出必须是合法 JSON
 `;
-
-  console.log('🔥 OpenAI generateTaskWithAI 被调用了');
 
   const response = await client.responses.create({
     model: 'gpt-5.2',
@@ -72,20 +82,14 @@ JSON 格式如下：
   });
 
   const text = response.output_text?.trim() || '';
-  console.log('🔥 OpenAI 原始文本返回 =', text);
-
   const data = extractJson(text);
 
   return {
     title: String(data.title || '兴趣折射任务'),
     subject: String(data.subject || '跨学科探究'),
     description: String(data.description || '围绕兴趣完成一次跨学科探究任务。'),
-    questions: Array.isArray(data.questions)
-      ? data.questions.map(String).slice(0, 3)
-      : [],
-    hints: Array.isArray(data.hints)
-      ? data.hints.map(String).slice(0, 3)
-      : []
+    questions: Array.isArray(data.questions) ? data.questions.map(String).slice(0, 3) : [],
+    hints: Array.isArray(data.hints) ? data.hints.map(String).slice(0, 3) : []
   };
 }
 
@@ -113,15 +117,7 @@ JSON 格式如下：
   "score": 88,
   "feedback": "这里写反馈"
 }
-
-要求：
-1. feedback 用中文
-2. feedback 120字以内
-3. 先肯定，再指出可提升点
-4. score 必须是整数
 `;
-
-  console.log('🔥 OpenAI generateFeedbackWithAI 被调用了');
 
   const response = await client.responses.create({
     model: 'gpt-5.2',
@@ -129,8 +125,6 @@ JSON 格式如下：
   });
 
   const text = response.output_text?.trim() || '';
-  console.log('🔥 OpenAI 反馈原始文本返回 =', text);
-
   const data = extractJson(text);
 
   let score = Number(data.score || 80);
@@ -139,8 +133,137 @@ JSON 格式如下：
 
   return {
     score,
-    feedback: String(
-      data.feedback || '你的作答已经有清晰思路，建议补充更多过程和变量分析。'
-    )
+    feedback: String(data.feedback || '你的作答已经有清晰思路，建议补充更多过程和变量分析。')
+  };
+}
+
+export async function generateStudentProfileWithAI(params: {
+  interests: string[];
+  latestTaskTitle?: string;
+  latestFeedback?: string;
+}): Promise<AIProfileResult> {
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
+  }
+
+  const prompt = `
+你是教育产品“星脉 Synapse”的学习画像助手。
+请根据学生最近的兴趣和学习表现，生成简洁画像。
+
+兴趣列表：${params.interests.join('；') || '暂无'}
+最近任务标题：${params.latestTaskTitle || '暂无'}
+最近反馈：${params.latestFeedback || '暂无'}
+
+请只输出 JSON：
+{
+  "tags": ["标签1", "标签2", "标签3"],
+  "strengths": ["优势1", "优势2", "优势3"],
+  "nextFocus": ["下一步1", "下一步2", "下一步3"]
+}
+`;
+
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: prompt
+  });
+
+  const text = response.output_text?.trim() || '';
+  const data = extractJson(text);
+
+  return {
+    tags: Array.isArray(data.tags) ? data.tags.map(String).slice(0, 3) : [],
+    strengths: Array.isArray(data.strengths) ? data.strengths.map(String).slice(0, 3) : [],
+    nextFocus: Array.isArray(data.nextFocus) ? data.nextFocus.map(String).slice(0, 3) : []
+  };
+}
+
+export async function generateLearningPathWithAI(params: {
+  interest: string;
+  subject: string;
+}): Promise<AIPathResult> {
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
+  }
+
+  const prompt = `
+你是“星脉 Synapse”的学习路径设计助手。
+请基于学生兴趣，给出一个 4 步连续学习路径。
+
+兴趣：${params.interest}
+当前学科：${params.subject}
+
+请只输出 JSON：
+{
+  "title": "路径标题",
+  "steps": ["第1步", "第2步", "第3步", "第4步"]
+}
+`;
+
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: prompt
+  });
+
+  const text = response.output_text?.trim() || '';
+  const data = extractJson(text);
+
+  return {
+    title: String(data.title || '个性化成长路径'),
+    steps: Array.isArray(data.steps) ? data.steps.map(String).slice(0, 4) : []
+  };
+}
+
+export async function generateParentAdviceWithAI(params: {
+  studentName: string;
+  taskTitle?: string;
+  latestFeedback?: string;
+  metrics: {
+    logic: number;
+    resilience: number;
+    creativity: number;
+    expression: number;
+    collaboration: number;
+  };
+}): Promise<AIParentAdviceResult> {
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
+  }
+
+  const prompt = `
+你是“星脉 Synapse”的家长沟通助手。
+请根据学生最近学习数据，生成一份家长建议。
+
+学生姓名：${params.studentName}
+最近任务：${params.taskTitle || '暂无'}
+最近反馈：${params.latestFeedback || '暂无'}
+能力数据：
+逻辑 ${params.metrics.logic}
+抗挫 ${params.metrics.resilience}
+创造 ${params.metrics.creativity}
+表达 ${params.metrics.expression}
+协作 ${params.metrics.collaboration}
+
+请只输出 JSON：
+{
+  "summary": "总体总结",
+  "strengths": ["优势1", "优势2", "优势3"],
+  "risks": ["关注点1", "关注点2"],
+  "advice": ["建议1", "建议2", "建议3"]
+}
+`;
+
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: prompt
+  });
+
+  const text = response.output_text?.trim() || '';
+  const data = extractJson(text);
+
+  return {
+    summary: String(data.summary || '孩子当前整体表现稳定，具备继续深挖兴趣的潜力。'),
+    strengths: Array.isArray(data.strengths) ? data.strengths.map(String).slice(0, 3) : [],
+    risks: Array.isArray(data.risks) ? data.risks.map(String).slice(0, 2) : [],
+    advice: Array.isArray(data.advice) ? data.advice.map(String).slice(0, 3) : []
   };
 }
