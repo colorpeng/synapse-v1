@@ -80,11 +80,11 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
 
   if (hasAI()) {
     try {
-      console.log('✅ 开始调用 Gemini 生成任务');
+      console.log('✅ 开始调用 OpenAI 生成任务');
 
       const aiTask = await generateTaskWithAI(content);
 
-      console.log('✅ Gemini 返回结果 =', JSON.stringify(aiTask));
+      console.log('✅ OpenAI 返回结果 =', JSON.stringify(aiTask));
 
       const isValid =
         Boolean(aiTask.title) &&
@@ -97,17 +97,17 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
 
       if (isValid) {
         taskData = aiTask;
-        console.log('✅ 已使用 Gemini 生成结果');
+        console.log('✅ 已使用 OpenAI 生成结果');
       } else {
-        console.log('⚠️ Gemini 返回格式不完整，继续使用模板');
+        console.log('⚠️ OpenAI 返回格式不完整，继续使用模板');
         console.log('⚠️ 不完整内容 =', JSON.stringify(aiTask));
       }
     } catch (error) {
-      console.error('❌ Gemini 生成任务失败:', error);
+      console.error('❌ OpenAI 生成任务失败:', error);
       console.log('⚠️ 已回退为模板任务');
     }
   } else {
-    console.log('⚠️ 未检测到 GEMINI_API_KEY，直接使用模板');
+    console.log('⚠️ 未检测到 OPENAI_API_KEY，直接使用模板');
   }
 
   console.log('最终使用的任务标题 =', taskData.title);
@@ -181,7 +181,7 @@ export async function submitAnswer(studentId: string, taskId: string, answer: st
 
   if (hasAI()) {
     try {
-      console.log('✅ 开始调用 Gemini 生成反馈');
+      console.log('✅ 开始调用 OpenAI 生成反馈');
 
       const aiResult = await generateFeedbackWithAI({
         title: task.title,
@@ -189,16 +189,16 @@ export async function submitAnswer(studentId: string, taskId: string, answer: st
         answer: cleanedAnswer
       });
 
-      console.log('✅ Gemini 反馈结果 =', JSON.stringify(aiResult));
+      console.log('✅ OpenAI 反馈结果 =', JSON.stringify(aiResult));
 
       score = aiResult.score;
       feedback = aiResult.feedback;
-      console.log('✅ 已使用 Gemini 反馈结果');
+      console.log('✅ 已使用 OpenAI 反馈结果');
     } catch (error) {
-      console.error('❌ Gemini 反馈失败，已回退规则反馈:', error);
+      console.error('❌ OpenAI 反馈失败，已回退规则反馈:', error);
     }
   } else {
-    console.log('⚠️ 未检测到 GEMINI_API_KEY，直接使用规则反馈');
+    console.log('⚠️ 未检测到 OPENAI_API_KEY，直接使用规则反馈');
   }
 
   console.log('最终得分 =', score);
