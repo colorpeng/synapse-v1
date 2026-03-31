@@ -53,3 +53,21 @@ export interface RadarData {
   collaboration: number;
   updatedAt: string;
 }
+
+export interface StudentProfile {
+  tags: string[];
+  strengths: string[];
+  nextFocus: string[];
+}
+
+export interface LearningPath {
+  title: string;
+  steps: string[];
+}
+
+export interface ParentAdvice {
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  advice: string[];
+}
