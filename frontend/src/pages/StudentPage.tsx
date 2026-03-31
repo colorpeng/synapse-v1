@@ -1,16 +1,16 @@
 import { CSSProperties, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
-import type { ProjectTask, SubmissionResponse } from '../types/index';
+import type { LearningPath, ProjectTask, StudentProfile, SubmissionResponse } from '../types';
 
 export function StudentPage() {
   const [interestType, setInterestType] = useState<'text' | 'image' | 'link'>('text');
   const [interestContent, setInterestContent] = useState('我喜欢原神跑图和地图探索');
   const [task, setTask] = useState<ProjectTask | null>(null);
-  const [answer, setAnswer] = useState(
-    '我选择了三条不同路线进行对比，记录每条路线的用时、坡度变化和体力损耗。最后发现绕开高坡区域虽然路径更长，但整体效率更高。'
-  );
+  const [answer, setAnswer] = useState('我选择了三条不同路线进行对比，记录每条路线的用时、坡度变化和体力损耗。最后发现绕开高坡区域虽然路径更长，但整体效率更高。');
   const [submitResult, setSubmitResult] = useState<SubmissionResponse | null>(null);
   const [hints, setHints] = useState<string[]>([]);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [path, setPath] = useState<LearningPath | null>(null);
   const [loadingTask, setLoadingTask] = useState(false);
   const [submittingInterest, setSubmittingInterest] = useState(false);
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
@@ -20,23 +20,34 @@ export function StudentPage() {
 
   async function loadTask() {
     setLoadingTask(true);
-    setError('');
     try {
       const result = await apiFetch<ProjectTask>('/student/getProject');
       setTask(result);
-    } catch (err) {
+    } catch {
       setTask(null);
-      const message = err instanceof Error ? err.message : '获取任务失败';
-      if (message !== '暂无任务') {
-        setError(message);
-      }
     } finally {
       setLoadingTask(false);
     }
   }
 
+  async function loadProfile() {
+    try {
+      const result = await apiFetch<StudentProfile>('/student/getProfile');
+      setProfile(result);
+    } catch {}
+  }
+
+  async function loadPath() {
+    try {
+      const result = await apiFetch<LearningPath>('/student/getPath');
+      setPath(result);
+    } catch {}
+  }
+
   useEffect(() => {
     loadTask();
+    loadProfile();
+    loadPath();
   }, []);
 
   async function handleSubmitInterest() {
@@ -50,7 +61,7 @@ export function StudentPage() {
 
     setSubmittingInterest(true);
     try {
-      const result = await apiFetch<{ task: ProjectTask; message: string }>('/student/submitInterest', {
+      const result = await apiFetch<{ task: ProjectTask }>('/student/submitInterest', {
         method: 'POST',
         body: JSON.stringify({
           type: interestType,
@@ -61,7 +72,9 @@ export function StudentPage() {
       setTask(result.task);
       setHints([]);
       setSubmitResult(null);
-      setSuccess('兴趣提交成功，新的探究任务已经生成。');
+      setSuccess('新的个性化探究任务已生成。');
+      await loadProfile();
+      await loadPath();
     } catch (err) {
       setError(err instanceof Error ? err.message : '提交兴趣失败');
     } finally {
@@ -75,14 +88,9 @@ export function StudentPage() {
       return;
     }
 
-    if (!answer.trim()) {
-      setError('请输入你的作答内容');
-      return;
-    }
-
+    setSubmittingAnswer(true);
     setError('');
     setSuccess('');
-    setSubmittingAnswer(true);
 
     try {
       const result = await apiFetch<SubmissionResponse>('/student/submitAnswer', {
@@ -94,7 +102,8 @@ export function StudentPage() {
       });
 
       setSubmitResult(result);
-      setSuccess('作业提交成功，你已经收到 AI 初步反馈。');
+      setSuccess('作业提交成功，你已获得 AI 反馈。');
+      await loadProfile();
     } catch (err) {
       setError(err instanceof Error ? err.message : '提交作业失败');
     } finally {
@@ -103,15 +112,10 @@ export function StudentPage() {
   }
 
   async function handleLoadHints() {
-    if (!task) {
-      setError('当前没有任务可查看提示');
-      return;
-    }
+    if (!task) return;
 
-    setError('');
-    setSuccess('');
     setLoadingHints(true);
-
+    setError('');
     try {
       const result = await apiFetch<{ hints: string[] }>(`/student/getFeedback?taskId=${task.id}`);
       setHints(result.hints);
@@ -124,173 +128,286 @@ export function StudentPage() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      <section style={cardStyle}>
-        <h2>学生端 V1 · 第一阶段</h2>
-        <p>已打通：兴趣提交 → 任务生成 → 分层提示 → 作业提交 → AI反馈。</p>
-      </section>
-
-      <section style={cardStyle}>
-        <h3>第 1 步：提交兴趣</h3>
-        <div style={{ display: 'grid', gap: 12 }}>
-          <label style={labelStyle}>兴趣类型</label>
-          <select
-            value={interestType}
-            onChange={(e) => setInterestType(e.target.value as 'text' | 'image' | 'link')}
-            style={inputStyle}
-          >
-            <option value="text">文本</option>
-            <option value="image">图片 URL</option>
-            <option value="link">视频/网页链接</option>
-          </select>
-
-          <label style={labelStyle}>兴趣内容</label>
-          <textarea
-            rows={4}
-            value={interestContent}
-            onChange={(e) => setInterestContent(e.target.value)}
-            style={textareaStyle}
-            placeholder="例如：我喜欢原神跑图和地图探索"
-          />
-
-          <button onClick={handleSubmitInterest} disabled={submittingInterest} style={buttonStyle}>
-            {submittingInterest ? '生成中...' : '生成探究任务'}
-          </button>
+      <section style={heroStyle}>
+        <div>
+          <div style={heroBadge}>学生端工作台</div>
+          <h2 style={{ margin: '10px 0', fontSize: 34 }}>兴趣驱动的连续学习系统</h2>
+          <p style={{ margin: 0, color: '#52606d', lineHeight: 1.8 }}>
+            从兴趣切入，生成探究任务，形成作答反馈，并持续沉淀学习画像与成长路径。
+          </p>
         </div>
       </section>
 
-      <section style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3>第 2 步：查看任务</h3>
-          <button onClick={loadTask} disabled={loadingTask} style={secondaryButtonStyle}>
-            {loadingTask ? '刷新中...' : '刷新任务'}
-          </button>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.9fr', gap: 20 }}>
+        <div style={{ display: 'grid', gap: 20 }}>
+          <section style={cardStyle}>
+            <h3 style={sectionTitleStyle}>第 1 步：提交兴趣</h3>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <label style={labelStyle}>兴趣类型</label>
+              <select
+                value={interestType}
+                onChange={(e) => setInterestType(e.target.value as 'text' | 'image' | 'link')}
+                style={inputStyle}
+              >
+                <option value="text">文本</option>
+                <option value="image">图片 URL</option>
+                <option value="link">视频/网页链接</option>
+              </select>
 
-        {task ? (
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div><strong>任务标题：</strong>{task.title}</div>
-            <div><strong>对应学科：</strong>{task.subject}</div>
-            <div><strong>任务描述：</strong>{task.description}</div>
+              <label style={labelStyle}>兴趣内容</label>
+              <textarea
+                rows={4}
+                value={interestContent}
+                onChange={(e) => setInterestContent(e.target.value)}
+                style={textareaStyle}
+              />
 
-            <div>
-              <strong>探究问题：</strong>
-              <ul>
-                {task.questions.map((q) => (
-                  <li key={q}>{q}</li>
-                ))}
-              </ul>
+              <button onClick={handleSubmitInterest} disabled={submittingInterest} style={primaryButtonStyle}>
+                {submittingInterest ? '生成中...' : '生成个性化探究任务'}
+              </button>
             </div>
+          </section>
 
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button onClick={handleLoadHints} disabled={loadingHints} style={secondaryButtonStyle}>
-                {loadingHints ? '加载提示中...' : '查看苏格拉底分层提示'}
+          <section style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={sectionTitleStyle}>第 2 步：查看任务</h3>
+              <button onClick={loadTask} disabled={loadingTask} style={ghostButtonStyle}>
+                {loadingTask ? '刷新中...' : '刷新任务'}
               </button>
             </div>
 
-            {hints.length > 0 && (
-              <div style={hintBoxStyle}>
-                <strong>分层提示：</strong>
-                <ul>
-                  {hints.map((hint) => (
-                    <li key={hint}>{hint}</li>
-                  ))}
-                </ul>
+            {task ? (
+              <div style={{ display: 'grid', gap: 12 }}>
+                <InfoRow label="任务标题" value={task.title} />
+                <InfoRow label="对应学科" value={task.subject} />
+                <InfoRow label="任务描述" value={task.description} />
+
+                <div>
+                  <strong>探究问题</strong>
+                  <ul>
+                    {task.questions.map((q) => <li key={q}>{q}</li>)}
+                  </ul>
+                </div>
+
+                <button onClick={handleLoadHints} disabled={loadingHints} style={ghostButtonStyle}>
+                  {loadingHints ? '加载中...' : '查看苏格拉底分层提示'}
+                </button>
+
+                {hints.length > 0 && (
+                  <div style={softBoxStyle}>
+                    <strong>提示：</strong>
+                    <ul>
+                      {hints.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ color: '#7b8794' }}>当前还没有任务，请先提交兴趣内容。</div>
+            )}
+          </section>
+
+          <section style={cardStyle}>
+            <h3 style={sectionTitleStyle}>第 3 步：提交作业</h3>
+            <textarea
+              rows={8}
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              style={textareaStyle}
+            />
+
+            <div style={{ marginTop: 12 }}>
+              <button onClick={handleSubmitAnswer} disabled={!task || submittingAnswer} style={primaryButtonStyle}>
+                {submittingAnswer ? '提交中...' : '提交作业'}
+              </button>
+            </div>
+
+            {submitResult && (
+              <div style={resultBoxStyle}>
+                <InfoRow label="得分" value={String(submitResult.submission.score)} />
+                <InfoRow label="AI反馈" value={submitResult.submission.feedback} />
               </div>
             )}
-          </div>
-        ) : (
-          <div>当前还没有任务，请先提交兴趣内容。</div>
-        )}
-      </section>
-
-      <section style={cardStyle}>
-        <h3>第 3 步：提交作业</h3>
-        <textarea
-          rows={8}
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          style={textareaStyle}
-          placeholder="请写下你的实验过程、数据记录和结论"
-        />
-
-        <div style={{ marginTop: 12 }}>
-          <button onClick={handleSubmitAnswer} disabled={!task || submittingAnswer} style={buttonStyle}>
-            {submittingAnswer ? '提交中...' : '提交作业'}
-          </button>
+          </section>
         </div>
 
-        {submitResult && (
-          <div style={resultBoxStyle}>
-            <div><strong>提交结果：</strong>{submitResult.message}</div>
-            <div><strong>得分：</strong>{submitResult.submission.score}</div>
-            <div><strong>反馈：</strong>{submitResult.submission.feedback}</div>
-          </div>
-        )}
-      </section>
+        <div style={{ display: 'grid', gap: 20 }}>
+          <section style={cardStyle}>
+            <h3 style={sectionTitleStyle}>学习画像</h3>
+            {profile ? (
+              <div style={{ display: 'grid', gap: 12 }}>
+                <TagGroup title="标签" items={profile.tags} />
+                <TagGroup title="优势" items={profile.strengths} />
+                <TagGroup title="下一步聚焦" items={profile.nextFocus} />
+              </div>
+            ) : (
+              <div style={{ color: '#7b8794' }}>暂无画像数据</div>
+            )}
+          </section>
 
-      {success && <div style={{ color: '#157347', fontWeight: 600 }}>{success}</div>}
-      {error && <div style={{ color: 'crimson', fontWeight: 600 }}>{error}</div>}
+          <section style={cardStyle}>
+            <h3 style={sectionTitleStyle}>连续学习路径</h3>
+            {path ? (
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ fontWeight: 700, color: '#243b53' }}>{path.title}</div>
+                {path.steps.map((step, index) => (
+                  <div key={step} style={stepStyle}>
+                    <div style={stepIndexStyle}>{index + 1}</div>
+                    <div>{step}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: '#7b8794' }}>暂无成长路径</div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {success && <div style={{ color: '#157347', fontWeight: 700 }}>{success}</div>}
+      {error && <div style={{ color: '#c62828', fontWeight: 700 }}>{error}</div>}
     </div>
   );
 }
 
+function TagGroup({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, marginBottom: 8 }}>{title}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {items.map((item) => (
+          <span key={item} style={tagStyle}>{item}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <strong>{label}：</strong>{value}
+    </div>
+  );
+}
+
+const heroStyle: CSSProperties = {
+  background: 'linear-gradient(135deg, #ffffff 0%, #f5f8ff 100%)',
+  borderRadius: 28,
+  padding: 28,
+  boxShadow: '0 16px 40px rgba(49,86,211,0.08)'
+};
+
+const heroBadge: CSSProperties = {
+  display: 'inline-block',
+  padding: '8px 12px',
+  borderRadius: 999,
+  background: '#e8efff',
+  color: '#3156d3',
+  fontWeight: 700
+};
+
 const cardStyle: CSSProperties = {
   background: '#fff',
-  borderRadius: 18,
-  padding: 20,
-  boxShadow: '0 10px 30px rgba(0,0,0,0.05)'
+  borderRadius: 24,
+  padding: 22,
+  boxShadow: '0 12px 32px rgba(15,23,42,0.06)'
+};
+
+const sectionTitleStyle: CSSProperties = {
+  marginTop: 0,
+  marginBottom: 16,
+  fontSize: 24,
+  color: '#102a43'
+};
+
+const labelStyle: CSSProperties = {
+  fontWeight: 700,
+  color: '#243b53'
 };
 
 const inputStyle: CSSProperties = {
   width: '100%',
-  padding: '10px 12px',
-  borderRadius: 10,
-  border: '1px solid #d7dce5'
+  padding: '12px 14px',
+  borderRadius: 14,
+  border: '1px solid #d9e2ec',
+  fontSize: 15
 };
 
 const textareaStyle: CSSProperties = {
   width: '100%',
-  padding: '12px',
-  borderRadius: 12,
-  border: '1px solid #d7dce5',
-  resize: 'vertical'
+  padding: '14px',
+  borderRadius: 16,
+  border: '1px solid #d9e2ec',
+  resize: 'vertical',
+  fontSize: 15
 };
 
-const buttonStyle: CSSProperties = {
-  background: '#2563eb',
-  color: '#fff',
+const primaryButtonStyle: CSSProperties = {
   border: 'none',
-  borderRadius: 12,
-  padding: '10px 16px',
+  borderRadius: 16,
+  padding: '14px 18px',
+  background: 'linear-gradient(90deg, #3156d3, #6f4ef6)',
+  color: '#fff',
+  fontWeight: 800,
   cursor: 'pointer'
 };
 
-const secondaryButtonStyle: CSSProperties = {
+const ghostButtonStyle: CSSProperties = {
+  border: '1px solid #c7d2fe',
+  borderRadius: 14,
+  padding: '10px 14px',
   background: '#eef4ff',
-  color: '#1d4ed8',
-  border: '1px solid #c9dafc',
-  borderRadius: 12,
-  padding: '10px 16px',
+  color: '#3156d3',
+  fontWeight: 700,
   cursor: 'pointer'
 };
 
-const hintBoxStyle: CSSProperties = {
+const softBoxStyle: CSSProperties = {
   background: '#f8fbff',
-  borderRadius: 12,
+  borderRadius: 16,
   padding: 16,
-  border: '1px solid #d8e8ff'
+  border: '1px solid #dbeafe'
 };
 
 const resultBoxStyle: CSSProperties = {
-  marginTop: 16,
+  marginTop: 14,
   background: '#f6fff8',
-  borderRadius: 12,
+  borderRadius: 16,
   padding: 16,
   border: '1px solid #cdebd5',
   display: 'grid',
   gap: 8
 };
 
-const labelStyle: CSSProperties = {
-  fontWeight: 600
+const tagStyle: CSSProperties = {
+  padding: '8px 12px',
+  borderRadius: 999,
+  background: '#eef4ff',
+  color: '#3156d3',
+  fontWeight: 700,
+  fontSize: 13
+};
+
+const stepStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '32px 1fr',
+  gap: 12,
+  alignItems: 'center',
+  background: '#f8fbff',
+  borderRadius: 16,
+  padding: 12,
+  border: '1px solid #dbeafe'
+};
+
+const stepIndexStyle: CSSProperties = {
+  width: 32,
+  height: 32,
+  borderRadius: 999,
+  background: 'linear-gradient(90deg, #3156d3, #6f4ef6)',
+  color: '#fff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontWeight: 800
 };
