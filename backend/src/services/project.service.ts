@@ -8,56 +8,118 @@ import {
   hasAI
 } from './ai.service.js';
 
+type DifficultyLevels = {
+  easy: string[];
+  medium: string[];
+  hard: string[];
+};
+
+type StructuredAnswer = {
+  observation?: string;
+  comparison?: string;
+  pattern?: string;
+  conclusion?: string;
+};
+
 function buildFallbackTask(content: string) {
   const normalized = content.trim();
 
   let subject = '跨学科探究';
   let title = '兴趣折射任务';
-  let description = `围绕“${normalized}”开展一次跨学科项目学习，请你像一个小研究者一样完成观察、分析和结论。`;
-  let questions = [
-    '这个兴趣背后隐含了哪些科学、数学或社会规律？',
-    '你能设计一个小实验、小调查或小对比来验证你的想法吗？',
-    '你最终得到的结论是什么？这些结论能帮助你解释什么现象？'
-  ];
-  let hints = [
-    'L1 提示：先说清你观察到了什么现象。',
-    'L2 提示：尝试把现象拆成几个可比较的变量。',
-    'L3 提示：把你的变量、过程和结论整理成表格或分点表达。'
+  let description = `围绕“${normalized}”开展一次学生友好的项目学习，请从观察、比较、规律和结论四个步骤逐步完成。`;
+
+  const difficultyLevels: DifficultyLevels = {
+    easy: [
+      '你最喜欢这个主题的哪个地方？先用自己的话说一说。',
+      '你能举出 2 个和这个主题有关的具体例子吗？',
+      '看完或体验后，你最直观的感受是什么？'
+    ],
+    medium: [
+      '你能选出 2-3 个场景做比较吗？',
+      '比较时，你观察到了哪些明显差别？',
+      '你能总结出一个初步规律吗？'
+    ],
+    hard: [
+      '哪些因素会影响这个主题的结果或表现？',
+      '你能设计一个简单记录表来比较这些因素吗？',
+      '根据你的分析，你能提出一个优化建议吗？'
+    ]
+  };
+
+  const hints = [
+    '先不要急着写结论，先把你看到的现象写清楚。',
+    '如果不知道怎么比较，可以从“时间、次数、强弱、顺序、结果”里选一个角度。',
+    '结论不需要很复杂，只要能回答“我发现了什么”就可以。'
   ];
 
   if (normalized.includes('原神') || normalized.includes('地图') || normalized.includes('跑图')) {
     subject = '物理 + 数学';
-    title = '开放世界跑图中的路径效率与受力分析';
-    description = '请基于你熟悉的开放世界地图探索，分析角色移动路径、地形坡度、体力消耗与最优路线之间的关系。';
-    questions = [
-      '不同路线会如何影响到达目标点的效率？',
-      '坡度、障碍物和体力值分别会带来什么影响？',
-      '你能用表格记录 3 条路径的时间差异并得出最优策略吗？'
+    title = '开放世界跑图中的路线效率观察';
+    description = '请从你熟悉的地图探索出发，比较不同路线在时间、体力和地形上的差别，找出更适合自己的跑图方式。';
+
+    difficultyLevels.easy = [
+      '你最常走的路线是哪一条？它有什么特点？',
+      '你能说出这条路线最方便或最麻烦的地方吗？',
+      '你觉得什么地形最影响跑图体验？'
     ];
-    hints = [
-      'L1 提示：先选出 3 条路线，并写清每条路线的地形特点。',
-      'L2 提示：记录“路径长度、是否爬坡、体力消耗、用时”四个变量。',
-      'L3 提示：比较结果后，写出“为什么最短路线不一定最快”。'
+    difficultyLevels.medium = [
+      '请比较 2 条不同路线的用时和体力消耗。',
+      '哪一条路线虽然更长，但走起来更顺？为什么？',
+      '你能总结出“高效路线”的一个共同特点吗？'
+    ];
+    difficultyLevels.hard = [
+      '坡度、障碍物、转弯次数会如何影响路线效率？',
+      '你能做一个 3 条路线的简易数据记录表吗？',
+      '请提出一个“更省时间或更省体力”的路线优化方案。'
     ];
   }
 
-  return { title, subject, description, questions, hints };
+  return {
+    title,
+    subject,
+    description,
+    difficultyLevels,
+    hints
+  };
 }
 
-async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask> {
+function normalizeTaskForStorage(taskData: {
+  title: string;
+  subject: string;
+  description: string;
+  difficultyLevels: DifficultyLevels;
+  hints: string[];
+}) {
+  return {
+    title: taskData.title,
+    subject: taskData.subject,
+    description: taskData.description,
+    questions: taskData.difficultyLevels.easy,
+    hints: taskData.hints,
+    difficultyLevels: taskData.difficultyLevels
+  };
+}
+
+async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask & { difficultyLevels?: DifficultyLevels }> {
   const content = interest.content.trim();
+
   let taskData = buildFallbackTask(content);
 
   if (hasAI()) {
     try {
       const aiTask = await generateTaskWithAI(content);
+
       const isValid =
         Boolean(aiTask.title) &&
         Boolean(aiTask.subject) &&
         Boolean(aiTask.description) &&
-        Array.isArray(aiTask.questions) &&
+        Array.isArray(aiTask.difficultyLevels?.easy) &&
+        Array.isArray(aiTask.difficultyLevels?.medium) &&
+        Array.isArray(aiTask.difficultyLevels?.hard) &&
+        aiTask.difficultyLevels.easy.length === 3 &&
+        aiTask.difficultyLevels.medium.length === 3 &&
+        aiTask.difficultyLevels.hard.length === 3 &&
         Array.isArray(aiTask.hints) &&
-        aiTask.questions.length === 3 &&
         aiTask.hints.length === 3;
 
       if (isValid) {
@@ -68,15 +130,18 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
     }
   }
 
+  const normalized = normalizeTaskForStorage(taskData);
+
   return {
     id: createId('task'),
     studentId: interest.studentId,
     interestId: interest.id,
-    title: taskData.title,
-    subject: taskData.subject,
-    description: taskData.description,
-    questions: taskData.questions,
-    hints: taskData.hints,
+    title: normalized.title,
+    subject: normalized.subject,
+    description: normalized.description,
+    questions: normalized.questions,
+    hints: normalized.hints,
+    difficultyLevels: normalized.difficultyLevels,
     createdAt: new Date().toISOString()
   };
 }
@@ -97,7 +162,7 @@ export async function submitInterest(studentId: string, type: Interest['type'], 
   interests.push(interest);
 
   const task = await generateTaskFromInterest(interest);
-  tasks.push(task);
+  tasks.push(task as ProjectTask);
 
   return { interest, task };
 }
@@ -110,50 +175,83 @@ export function getTaskById(studentId: string, taskId: string) {
   return tasks.find((task) => task.id === taskId && task.studentId === studentId) ?? null;
 }
 
-export async function submitAnswer(studentId: string, taskId: string, answer: string) {
+function formatStructuredAnswer(answer: string | StructuredAnswer) {
+  if (typeof answer === 'string') {
+    return {
+      plain: answer,
+      merged: answer
+    };
+  }
+
+  const observation = answer.observation?.trim() || '';
+  const comparison = answer.comparison?.trim() || '';
+  const pattern = answer.pattern?.trim() || '';
+  const conclusion = answer.conclusion?.trim() || '';
+
+  const merged = [
+    `观察：${observation || '未填写'}`,
+    `比较：${comparison || '未填写'}`,
+    `规律：${pattern || '未填写'}`,
+    `结论：${conclusion || '未填写'}`
+  ].join('\n');
+
+  return {
+    plain: merged,
+    merged
+  };
+}
+
+export async function submitAnswer(studentId: string, taskId: string, answer: string | StructuredAnswer) {
   const task = tasks.find((item) => item.id === taskId && item.studentId === studentId);
   if (!task) {
     throw new Error('任务不存在');
   }
 
-  if (!answer || !answer.trim()) {
+  const formatted = formatStructuredAnswer(answer);
+
+  if (!formatted.merged.trim()) {
     throw new Error('作答内容不能为空');
   }
 
-  const cleanedAnswer = answer.trim();
-
-  let score = Math.min(95, Math.max(60, Math.floor(cleanedAnswer.length / 6) + 55));
+  let score = Math.min(95, Math.max(60, Math.floor(formatted.merged.length / 8) + 55));
   let feedback =
-    cleanedAnswer.length < 50
-      ? '你的回答已经有方向了，但还可以再补充实验步骤、数据记录和结论，这样会更像一个完整的项目作品。'
-      : '你的作答结构比较完整，已经体现了观察、分析和结论。下一步建议补充对变量变化的解释，让论证更严谨。';
+    formatted.merged.length < 80
+      ? '你已经开始表达自己的想法了，下一步可以把“观察”和“比较”写得更具体一些，这样结论会更有说服力。'
+      : '你的作答已经有比较清晰的结构，说明你在认真思考。下一步建议把规律和结论之间的联系写得更明确。';
+
+  let highlights: string[] = ['能完成基础表达', '已经开始形成结论'];
+  let nextActions: string[] = ['补充更多具体例子', '把比较过程写得更清楚'];
 
   if (hasAI()) {
     try {
       const aiResult = await generateFeedbackWithAI({
         title: task.title,
         subject: task.subject,
-        answer: cleanedAnswer
+        answer: formatted.merged
       });
       score = aiResult.score;
       feedback = aiResult.feedback;
+      highlights = aiResult.highlights.length > 0 ? aiResult.highlights : highlights;
+      nextActions = aiResult.nextActions.length > 0 ? aiResult.nextActions : nextActions;
     } catch (error) {
       console.error('❌ OpenAI 反馈失败:', error);
     }
   }
 
-  const submission: Submission = {
+  const submission: Submission & { highlights?: string[]; nextActions?: string[] } = {
     id: createId('sub'),
     taskId,
     studentId,
-    answer: cleanedAnswer,
-    feedback,
+    answer: formatted.plain,
+    feedback: `${feedback}\n\n亮点：${highlights.join('；')}\n下一步：${nextActions.join('；')}`,
     score,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    highlights,
+    nextActions
   };
 
   submissions.push(submission);
-  updateMetrics(studentId, cleanedAnswer.length, score);
+  updateMetrics(studentId, formatted.merged.length, score);
 
   return submission;
 }
@@ -175,8 +273,8 @@ function updateMetrics(studentId: string, answerLength: number, score: number) {
   }
 
   current.logic = Math.min(100, current.logic + Math.round(score / 18));
-  current.expression = Math.min(100, current.expression + Math.max(1, Math.round(answerLength / 80)));
-  current.creativity = Math.min(100, current.creativity + (answerLength > 100 ? 2 : 1));
+  current.expression = Math.min(100, current.expression + Math.max(1, Math.round(answerLength / 90)));
+  current.creativity = Math.min(100, current.creativity + (answerLength > 120 ? 2 : 1));
   current.resilience = Math.min(100, current.resilience + 1);
   current.updatedAt = new Date().toISOString();
 }
@@ -215,9 +313,9 @@ export async function getStudentProfile(studentId: string) {
   }
 
   return {
-    tags: ['兴趣驱动型', '项目探索者', '表达成长中'],
-    strengths: ['愿意主动尝试新主题', '具备一定观察与归纳能力', '能够形成初步结论'],
-    nextFocus: ['补充数据记录', '强化逻辑表达', '形成连续项目产出']
+    tags: ['兴趣驱动型', '逐步成长型', '愿意表达'],
+    strengths: ['能围绕兴趣持续投入', '具备基础观察能力', '愿意形成自己的结论'],
+    nextFocus: ['比较过程更具体', '规律表达更清晰', '结论更有依据']
   };
 }
 
@@ -228,7 +326,7 @@ export async function getLearningPath(studentId: string) {
   if (!latestInterest || !latestTask) {
     return {
       title: '个性化成长路径',
-      steps: ['先提交一个兴趣主题', '生成任务并完成探究', '提交作业获取反馈', '根据反馈进入下一轮优化']
+      steps: ['先提交一个兴趣主题', '完成基础观察', '补充比较与规律', '升级为展示型成果']
     };
   }
 
@@ -246,10 +344,10 @@ export async function getLearningPath(studentId: string) {
   return {
     title: '连续学习路径',
     steps: [
-      '先完成一次兴趣主题的基础观察',
-      '补充数据记录与变量比较',
-      '形成结构化结论',
-      '把本次成果升级为展示型作品'
+      '先观察你最熟悉的兴趣现象',
+      '再做 2-3 个例子的比较',
+      '总结出一个小规律',
+      '把规律整理成展示型成果'
     ]
   };
 }
