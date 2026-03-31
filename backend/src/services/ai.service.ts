@@ -1,8 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-console.log('GEMINI env exists =', !!process.env.GEMINI_API_KEY);
+// ✅ 临时写死 key（测试用）
+const apiKey = 'AIzaSyCnEDr3uU1_cJpOubWUCmyb5dgnIDBjnOg';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
+// ❗ 验证
+console.log('GEMINI test key exists =', !!apiKey);
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }) : null;
