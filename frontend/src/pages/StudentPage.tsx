@@ -215,10 +215,7 @@ export function StudentPage() {
     setSuccess('');
 
     try {
-      const payload =
-        answerMode === 'simple'
-          ? simpleAnswer
-          : structuredAnswer;
+      const payload = answerMode === 'simple' ? simpleAnswer : structuredAnswer;
 
       const result = await apiFetch<SubmissionResponse>('/student/submitAnswer', {
         method: 'POST',
@@ -256,16 +253,16 @@ export function StudentPage() {
   return (
     <div style={pageWrapStyle}>
       <section style={heroStyle}>
-        <div>
+        <div style={heroInnerStyle}>
           <div style={heroBadge}>学生端 V2</div>
           <h2 style={heroTitleStyle}>兴趣 × 难度分层 × 连续成长</h2>
           <p style={heroDescStyle}>
-            现在你可以按自己的能力选择题目难度，用分步作答方式完成任务，还能直接用语音说出想法。
+            从兴趣出发，生成更适合学生理解的任务；通过分步作答、语音输入、连续反馈，让学习过程更轻松也更有成就感。
           </p>
         </div>
       </section>
 
-      <div style={contentGridStyle}>
+      <div style={responsiveGridStyle}>
         <div style={leftColumnStyle}>
           <section style={cardStyle}>
             <h3 style={sectionTitleStyle}>第 1 步：提交兴趣</h3>
@@ -342,7 +339,9 @@ export function StudentPage() {
                 <div style={softBoxStyle}>
                   <strong style={strongTitleStyle}>当前难度问题</strong>
                   <ul style={listStyle}>
-                    {currentQuestions.map((q) => <li key={q} style={listItemStyle}>{q}</li>)}
+                    {currentQuestions.map((q) => (
+                      <li key={q} style={listItemStyle}>{q}</li>
+                    ))}
                   </ul>
                 </div>
 
@@ -354,7 +353,9 @@ export function StudentPage() {
                   <div style={softBoxStyle}>
                     <strong style={strongTitleStyle}>提示</strong>
                     <ul style={listStyle}>
-                      {hints.map((item) => <li key={item} style={listItemStyle}>{item}</li>)}
+                      {hints.map((item) => (
+                        <li key={item} style={listItemStyle}>{item}</li>
+                      ))}
                     </ul>
                   </div>
                 )}
@@ -440,7 +441,9 @@ export function StudentPage() {
                   <div>
                     <strong style={strongTitleStyle}>你的亮点</strong>
                     <ul style={listStyle}>
-                      {submitResult.submission.highlights.map((item) => <li key={item} style={listItemStyle}>{item}</li>)}
+                      {submitResult.submission.highlights.map((item) => (
+                        <li key={item} style={listItemStyle}>{item}</li>
+                      ))}
                     </ul>
                   </div>
                 ) : null}
@@ -449,7 +452,9 @@ export function StudentPage() {
                   <div>
                     <strong style={strongTitleStyle}>下一步建议</strong>
                     <ul style={listStyle}>
-                      {submitResult.submission.nextActions.map((item) => <li key={item} style={listItemStyle}>{item}</li>)}
+                      {submitResult.submission.nextActions.map((item) => (
+                        <li key={item} style={listItemStyle}>{item}</li>
+                      ))}
                     </ul>
                   </div>
                 ) : null}
@@ -491,8 +496,8 @@ export function StudentPage() {
         </div>
       </div>
 
-      {success && <div style={successTextStyle}>{success}</div>}
-      {error && <div style={errorTextStyle}>{error}</div>}
+      {success && <StatusBanner type="success" text={success} />}
+      {error && <StatusBanner type="error" text={error} />}
     </div>
   );
 }
@@ -577,6 +582,24 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function StatusBanner({ type, text }: { type: 'success' | 'error'; text: string }) {
+  return (
+    <div
+      style={{
+        borderRadius: 16,
+        padding: '14px 16px',
+        fontWeight: 700,
+        lineHeight: 1.6,
+        background: type === 'success' ? '#edfdf3' : '#fff1f2',
+        color: type === 'success' ? '#157347' : '#c62828',
+        border: type === 'success' ? '1px solid #cdebd5' : '1px solid #fecdd3'
+      }}
+    >
+      {text}
+    </div>
+  );
+}
+
 const pageWrapStyle: CSSProperties = {
   width: '100%',
   maxWidth: 1200,
@@ -585,9 +608,9 @@ const pageWrapStyle: CSSProperties = {
   gap: 20
 };
 
-const contentGridStyle: CSSProperties = {
+const responsiveGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1.4fr) minmax(300px, 0.9fr)',
+  gridTemplateColumns: 'minmax(0, 1.45fr) minmax(280px, 0.9fr)',
   gap: 20,
   alignItems: 'start'
 };
@@ -605,13 +628,17 @@ const rightColumnStyle: CSSProperties = {
 };
 
 const heroStyle: CSSProperties = {
-  background: 'linear-gradient(135deg, #ffffff 0%, #f5f8ff 100%)',
+  background: 'linear-gradient(135deg, #ffffff 0%, #f4f7ff 55%, #eef2ff 100%)',
   borderRadius: 28,
   padding: 28,
   boxShadow: '0 16px 40px rgba(49,86,211,0.08)',
   width: '100%',
   minWidth: 0,
   overflow: 'hidden'
+};
+
+const heroInnerStyle: CSSProperties = {
+  maxWidth: 760
 };
 
 const heroBadge: CSSProperties = {
@@ -645,7 +672,7 @@ const cardStyle: CSSProperties = {
   background: '#fff',
   borderRadius: 24,
   padding: 22,
-  boxShadow: '0 12px 32px rgba(15,23,42,0.06)',
+  boxShadow: '0 14px 36px rgba(15,23,42,0.06)',
   width: '100%',
   minWidth: 0,
   overflow: 'hidden',
@@ -689,7 +716,8 @@ const inputStyle: CSSProperties = {
   border: '1px solid #d9e2ec',
   fontSize: 15,
   boxSizing: 'border-box',
-  minWidth: 0
+  minWidth: 0,
+  background: '#fff'
 };
 
 const textareaStyle: CSSProperties = {
@@ -701,13 +729,14 @@ const textareaStyle: CSSProperties = {
   border: '1px solid #d9e2ec',
   resize: 'none',
   fontSize: 15,
-  lineHeight: 1.7,
+  lineHeight: 1.75,
   boxSizing: 'border-box',
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
   overflowWrap: 'break-word',
   overflow: 'hidden',
-  display: 'block'
+  display: 'block',
+  background: '#fff'
 };
 
 const buttonRowStyle: CSSProperties = {
@@ -860,7 +889,8 @@ const stepTextStyle: CSSProperties = {
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
   overflowWrap: 'break-word',
-  minWidth: 0
+  minWidth: 0,
+  lineHeight: 1.7
 };
 
 const difficultyButtonStyle = (active: boolean): CSSProperties => ({
@@ -918,16 +948,4 @@ const strongTitleStyle: CSSProperties = {
 const emptyTextStyle: CSSProperties = {
   color: '#7b8794',
   lineHeight: 1.7
-};
-
-const successTextStyle: CSSProperties = {
-  color: '#157347',
-  fontWeight: 700,
-  lineHeight: 1.6
-};
-
-const errorTextStyle: CSSProperties = {
-  color: '#c62828',
-  fontWeight: 700,
-  lineHeight: 1.6
 };
