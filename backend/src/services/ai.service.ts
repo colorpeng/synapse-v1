@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // 临时方案：先写死新生成的 Gemini Key，确认功能跑通后再改回环境变量
-const apiKey = 'AIzaSyBKuZv5YBIvbmZj4uVnKCCiqzPUkHlEncY';
+const apiKey = process.env.GEMINI_API_KEY || '';
 
 console.log('GEMINI test key exists =', !!apiKey);
 
