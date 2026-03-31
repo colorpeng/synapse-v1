@@ -1,12 +1,49 @@
-import { CSSProperties, useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '../api/client';
-import type { LearningPath, ProjectTask, StudentProfile, SubmissionResponse } from '../types';
+import type {
+  LearningPath,
+  ProjectTask,
+  StructuredAnswer,
+  StudentProfile,
+  SubmissionResponse
+} from '../types';
+
+type DifficultyKey = 'easy' | 'medium' | 'hard';
+type VoiceField = 'interest' | keyof StructuredAnswer;
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+  }
+}
 
 export function StudentPage() {
   const [interestType, setInterestType] = useState<'text' | 'image' | 'link'>('text');
   const [interestContent, setInterestContent] = useState('我喜欢原神跑图和地图探索');
   const [task, setTask] = useState<ProjectTask | null>(null);
-  const [answer, setAnswer] = useState('我选择了三条不同路线进行对比，记录每条路线的用时、坡度变化和体力损耗。最后发现绕开高坡区域虽然路径更长，但整体效率更高。');
+  const [difficulty, setDifficulty] = useState<DifficultyKey>('easy');
+  const [answerMode, setAnswerMode] = useState<'simple' | 'structured'>('structured');
+  const [simpleAnswer, setSimpleAnswer] = useState(
+    '我观察到不同路线在地形和时间上差别很大。我比较了三条路线后发现，虽然有些路更长，但因为障碍更少，所以整体更快。'
+  );
+  const [structuredAnswer, setStructuredAnswer] = useState<StructuredAnswer>({
+    observation: '',
+    comparison: '',
+    pattern: '',
+    conclusion: ''
+  });
   const [submitResult, setSubmitResult] = useState<SubmissionResponse | null>(null);
   const [hints, setHints] = useState<string[]>([]);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -15,8 +52,16 @@ export function StudentPage() {
   const [submittingInterest, setSubmittingInterest] = useState(false);
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
   const [loadingHints, setLoadingHints] = useState(false);
+  const [recordingField, setRecordingField] = useState<VoiceField | ''>('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  const currentQuestions = useMemo(() => {
+    if (!task?.difficultyLevels) return task?.questions || [];
+    return task.difficultyLevels[difficulty] || [];
+  }, [task, difficulty]);
 
   async function loadTask() {
     setLoadingTask(true);
@@ -50,6 +95,75 @@ export function StudentPage() {
     loadPath();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  function updateStructuredField(field: keyof StructuredAnswer, value: string) {
+    setStructuredAnswer((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function isSpeechSupported() {
+    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  function startVoiceInput(field: VoiceField) {
+    if (!isSpeechSupported()) {
+      setError('当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
+      return;
+    }
+
+    setError('');
+
+    if (recordingField) {
+      recognitionRef.current?.stop();
+      setRecordingField('');
+    }
+
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0]?.transcript || '')
+        .join('');
+
+      if (field === 'interest') {
+        setInterestContent((prev) => (prev ? `${prev}${transcript}` : transcript));
+      } else {
+        setStructuredAnswer((prev) => ({
+          ...prev,
+          [field]: prev[field] ? `${prev[field]}${transcript}` : transcript
+        }));
+      }
+    };
+
+    recognition.onerror = () => {
+      setError('语音识别失败，请重试。');
+      setRecordingField('');
+    };
+
+    recognition.onend = () => {
+      setRecordingField('');
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setRecordingField(field);
+  }
+
+  function stopVoiceInput() {
+    recognitionRef.current?.stop();
+    setRecordingField('');
+  }
+
   async function handleSubmitInterest() {
     setError('');
     setSuccess('');
@@ -70,8 +184,16 @@ export function StudentPage() {
       });
 
       setTask(result.task);
+      setDifficulty('easy');
       setHints([]);
       setSubmitResult(null);
+      setStructuredAnswer({
+        observation: '',
+        comparison: '',
+        pattern: '',
+        conclusion: ''
+      });
+      setSimpleAnswer('');
       setSuccess('新的个性化探究任务已生成。');
       await loadProfile();
       await loadPath();
@@ -93,11 +215,16 @@ export function StudentPage() {
     setSuccess('');
 
     try {
+      const payload =
+        answerMode === 'simple'
+          ? simpleAnswer
+          : structuredAnswer;
+
       const result = await apiFetch<SubmissionResponse>('/student/submitAnswer', {
         method: 'POST',
         body: JSON.stringify({
           taskId: task.id,
-          answer
+          answer: payload
         })
       });
 
@@ -130,10 +257,10 @@ export function StudentPage() {
     <div style={{ display: 'grid', gap: 20 }}>
       <section style={heroStyle}>
         <div>
-          <div style={heroBadge}>学生端工作台</div>
-          <h2 style={{ margin: '10px 0', fontSize: 34 }}>兴趣驱动的连续学习系统</h2>
+          <div style={heroBadge}>学生端 V2</div>
+          <h2 style={{ margin: '10px 0', fontSize: 34 }}>兴趣 × 难度分层 × 连续成长</h2>
           <p style={{ margin: 0, color: '#52606d', lineHeight: 1.8 }}>
-            从兴趣切入，生成探究任务，形成作答反馈，并持续沉淀学习画像与成长路径。
+            现在你可以按自己的能力选择题目难度，用分步作答方式完成任务，还能直接用语音说出想法。
           </p>
         </div>
       </section>
@@ -160,16 +287,29 @@ export function StudentPage() {
                 value={interestContent}
                 onChange={(e) => setInterestContent(e.target.value)}
                 style={textareaStyle}
+                placeholder="比如：我喜欢英雄联盟的亚索、我喜欢黑洞、我喜欢悬疑小说……"
               />
 
-              <button onClick={handleSubmitInterest} disabled={submittingInterest} style={primaryButtonStyle}>
-                {submittingInterest ? '生成中...' : '生成个性化探究任务'}
-              </button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {!recordingField || recordingField !== 'interest' ? (
+                  <button onClick={() => startVoiceInput('interest')} style={ghostButtonStyle}>
+                    🎤 语音输入兴趣
+                  </button>
+                ) : (
+                  <button onClick={stopVoiceInput} style={dangerButtonStyle}>
+                    ⏹ 停止录音
+                  </button>
+                )}
+
+                <button onClick={handleSubmitInterest} disabled={submittingInterest} style={primaryButtonStyle}>
+                  {submittingInterest ? '生成中...' : '生成个性化探究任务'}
+                </button>
+              </div>
             </div>
           </section>
 
           <section style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <h3 style={sectionTitleStyle}>第 2 步：查看任务</h3>
               <button onClick={loadTask} disabled={loadingTask} style={ghostButtonStyle}>
                 {loadingTask ? '刷新中...' : '刷新任务'}
@@ -177,15 +317,30 @@ export function StudentPage() {
             </div>
 
             {task ? (
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ display: 'grid', gap: 16 }}>
                 <InfoRow label="任务标题" value={task.title} />
                 <InfoRow label="对应学科" value={task.subject} />
                 <InfoRow label="任务描述" value={task.description} />
 
                 <div>
-                  <strong>探究问题</strong>
+                  <strong>选择难度</strong>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                    <button onClick={() => setDifficulty('easy')} style={difficultyButtonStyle(difficulty === 'easy')}>
+                      初级探索
+                    </button>
+                    <button onClick={() => setDifficulty('medium')} style={difficultyButtonStyle(difficulty === 'medium')}>
+                      进阶分析
+                    </button>
+                    <button onClick={() => setDifficulty('hard')} style={difficultyButtonStyle(difficulty === 'hard')}>
+                      挑战模式
+                    </button>
+                  </div>
+                </div>
+
+                <div style={softBoxStyle}>
+                  <strong>当前难度问题</strong>
                   <ul>
-                    {task.questions.map((q) => <li key={q}>{q}</li>)}
+                    {currentQuestions.map((q) => <li key={q}>{q}</li>)}
                   </ul>
                 </div>
 
@@ -208,15 +363,68 @@ export function StudentPage() {
           </section>
 
           <section style={cardStyle}>
-            <h3 style={sectionTitleStyle}>第 3 步：提交作业</h3>
-            <textarea
-              rows={8}
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              style={textareaStyle}
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <h3 style={sectionTitleStyle}>第 3 步：提交作答</h3>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setAnswerMode('structured')} style={answerModeButtonStyle(answerMode === 'structured')}>
+                  分步作答
+                </button>
+                <button onClick={() => setAnswerMode('simple')} style={answerModeButtonStyle(answerMode === 'simple')}>
+                  简单作答
+                </button>
+              </div>
+            </div>
 
-            <div style={{ marginTop: 12 }}>
+            {answerMode === 'structured' ? (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <AnswerField
+                  title="1. 我观察到了什么"
+                  placeholder="先写你看到的现象、场景或最直观的感受。"
+                  value={structuredAnswer.observation}
+                  onChange={(value) => updateStructuredField('observation', value)}
+                  onVoice={() => startVoiceInput('observation')}
+                  onStop={stopVoiceInput}
+                  recording={recordingField === 'observation'}
+                />
+                <AnswerField
+                  title="2. 我做了什么比较"
+                  placeholder="写你比较了哪些例子、路线、角色、情节或数据。"
+                  value={structuredAnswer.comparison}
+                  onChange={(value) => updateStructuredField('comparison', value)}
+                  onVoice={() => startVoiceInput('comparison')}
+                  onStop={stopVoiceInput}
+                  recording={recordingField === 'comparison'}
+                />
+                <AnswerField
+                  title="3. 我发现了什么规律"
+                  placeholder="写出你从比较中发现的共同点或差别。"
+                  value={structuredAnswer.pattern}
+                  onChange={(value) => updateStructuredField('pattern', value)}
+                  onVoice={() => startVoiceInput('pattern')}
+                  onStop={stopVoiceInput}
+                  recording={recordingField === 'pattern'}
+                />
+                <AnswerField
+                  title="4. 我的最终结论"
+                  placeholder="最后回答：我最终发现了什么？这个发现能说明什么？"
+                  value={structuredAnswer.conclusion}
+                  onChange={(value) => updateStructuredField('conclusion', value)}
+                  onVoice={() => startVoiceInput('conclusion')}
+                  onStop={stopVoiceInput}
+                  recording={recordingField === 'conclusion'}
+                />
+              </div>
+            ) : (
+              <textarea
+                rows={8}
+                value={simpleAnswer}
+                onChange={(e) => setSimpleAnswer(e.target.value)}
+                style={textareaStyle}
+                placeholder="用自己的话把想法完整写出来。"
+              />
+            )}
+
+            <div style={{ marginTop: 14 }}>
               <button onClick={handleSubmitAnswer} disabled={!task || submittingAnswer} style={primaryButtonStyle}>
                 {submittingAnswer ? '提交中...' : '提交作业'}
               </button>
@@ -225,7 +433,25 @@ export function StudentPage() {
             {submitResult && (
               <div style={resultBoxStyle}>
                 <InfoRow label="得分" value={String(submitResult.submission.score)} />
-                <InfoRow label="AI反馈" value={submitResult.submission.feedback} />
+                <InfoRow label="总体反馈" value={submitResult.submission.feedback} />
+
+                {submitResult.submission.highlights?.length ? (
+                  <div>
+                    <strong>你的亮点：</strong>
+                    <ul>
+                      {submitResult.submission.highlights.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {submitResult.submission.nextActions?.length ? (
+                  <div>
+                    <strong>下一步建议：</strong>
+                    <ul>
+                      {submitResult.submission.nextActions.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             )}
           </section>
@@ -266,6 +492,37 @@ export function StudentPage() {
 
       {success && <div style={{ color: '#157347', fontWeight: 700 }}>{success}</div>}
       {error && <div style={{ color: '#c62828', fontWeight: 700 }}>{error}</div>}
+    </div>
+  );
+}
+
+function AnswerField(props: {
+  title: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  onVoice: () => void;
+  onStop: () => void;
+  recording: boolean;
+}) {
+  return (
+    <div style={softBoxStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <strong>{props.title}</strong>
+        {!props.recording ? (
+          <button onClick={props.onVoice} style={ghostButtonStyle}>🎤 语音输入</button>
+        ) : (
+          <button onClick={props.onStop} style={dangerButtonStyle}>⏹ 停止录音</button>
+        )}
+      </div>
+
+      <textarea
+        rows={4}
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value)}
+        style={{ ...textareaStyle, marginTop: 10 }}
+        placeholder={props.placeholder}
+      />
     </div>
   );
 }
@@ -312,6 +569,13 @@ const cardStyle: CSSProperties = {
   borderRadius: 24,
   padding: 22,
   boxShadow: '0 12px 32px rgba(15,23,42,0.06)'
+};
+
+const softBoxStyle: CSSProperties = {
+  background: '#f8fbff',
+  borderRadius: 18,
+  padding: 16,
+  border: '1px solid #dbeafe'
 };
 
 const sectionTitleStyle: CSSProperties = {
@@ -363,11 +627,14 @@ const ghostButtonStyle: CSSProperties = {
   cursor: 'pointer'
 };
 
-const softBoxStyle: CSSProperties = {
-  background: '#f8fbff',
-  borderRadius: 16,
-  padding: 16,
-  border: '1px solid #dbeafe'
+const dangerButtonStyle: CSSProperties = {
+  border: 'none',
+  borderRadius: 14,
+  padding: '10px 14px',
+  background: '#fee2e2',
+  color: '#b91c1c',
+  fontWeight: 700,
+  cursor: 'pointer'
 };
 
 const resultBoxStyle: CSSProperties = {
@@ -411,3 +678,23 @@ const stepIndexStyle: CSSProperties = {
   justifyContent: 'center',
   fontWeight: 800
 };
+
+const difficultyButtonStyle = (active: boolean): CSSProperties => ({
+  border: 'none',
+  borderRadius: 14,
+  padding: '10px 14px',
+  background: active ? 'linear-gradient(90deg, #3156d3, #6f4ef6)' : '#eef4ff',
+  color: active ? '#fff' : '#3156d3',
+  fontWeight: 800,
+  cursor: 'pointer'
+});
+
+const answerModeButtonStyle = (active: boolean): CSSProperties => ({
+  border: 'none',
+  borderRadius: 12,
+  padding: '8px 12px',
+  background: active ? '#102a43' : '#eef2f7',
+  color: active ? '#fff' : '#486581',
+  fontWeight: 700,
+  cursor: 'pointer'
+});
