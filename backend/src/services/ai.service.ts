@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // ✅ 临时写死 key（测试用）
-const apiKey = 'AIzaSyCnEDr3uU1_cJpOubWUCmyb5dgnIDBjnOg';
+const apiKey = 'AIzaSyBKuZv5YBIvbmZj4uVnKCCiqzPUkHlEncY';
 
 // ❗ 验证
 console.log('GEMINI test key exists =', !!apiKey);
