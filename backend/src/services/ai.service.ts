@@ -1,10 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-console.log('GEMINI env exists =', !!process.env.GEMINI_API_KEY);
+const apiKey = process.env.OPENAI_API_KEY || '';
+console.log('OPENAI env exists =', !!process.env.OPENAI_API_KEY);
 
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }) : null;
+const client = apiKey ? new OpenAI({ apiKey }) : null;
 
 type AITaskResult = {
   title: string;
@@ -34,12 +33,12 @@ function extractJson(text: string) {
 }
 
 export function hasAI() {
-  return Boolean(model);
+  return Boolean(client);
 }
 
 export async function generateTaskWithAI(content: string): Promise<AITaskResult> {
-  if (!model) {
-    throw new Error('未配置 Gemini 模型');
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
   }
 
   const prompt = `
@@ -65,11 +64,15 @@ JSON 格式如下：
 4. 输出必须是合法 JSON
 `;
 
-  console.log('🔥 Gemini generateTaskWithAI 被调用了');
+  console.log('🔥 OpenAI generateTaskWithAI 被调用了');
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
-  console.log('🔥 Gemini 原始文本返回 =', text);
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: prompt
+  });
+
+  const text = response.output_text?.trim() || '';
+  console.log('🔥 OpenAI 原始文本返回 =', text);
 
   const data = extractJson(text);
 
@@ -91,8 +94,8 @@ export async function generateFeedbackWithAI(params: {
   subject: string;
   answer: string;
 }): Promise<AIFeedbackResult> {
-  if (!model) {
-    throw new Error('未配置 Gemini 模型');
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
   }
 
   const prompt = `
@@ -118,11 +121,15 @@ JSON 格式如下：
 4. score 必须是整数
 `;
 
-  console.log('🔥 Gemini generateFeedbackWithAI 被调用了');
+  console.log('🔥 OpenAI generateFeedbackWithAI 被调用了');
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
-  console.log('🔥 Gemini 反馈原始文本返回 =', text);
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: prompt
+  });
+
+  const text = response.output_text?.trim() || '';
+  console.log('🔥 OpenAI 反馈原始文本返回 =', text);
 
   const data = extractJson(text);
 
