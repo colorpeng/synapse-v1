@@ -3,6 +3,8 @@ import { requireAuth, requireRole } from '../middleware/auth.middleware.js';
 import {
   getFeedback,
   getLatestProject,
+  getLearningPath,
+  getStudentProfile,
   getTaskById,
   submitAnswer,
   submitInterest
@@ -85,5 +87,25 @@ studentRouter.get('/getFeedback', (req, res) => {
     res.json({ hints });
   } catch (error) {
     res.status(400).json({ message: error instanceof Error ? error.message : '获取失败' });
+  }
+});
+
+studentRouter.get('/getProfile', async (req, res) => {
+  try {
+    const studentId = req.auth!.userId;
+    const profile = await getStudentProfile(studentId);
+    res.json(profile);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : '获取画像失败' });
+  }
+});
+
+studentRouter.get('/getPath', async (req, res) => {
+  try {
+    const studentId = req.auth!.userId;
+    const path = await getLearningPath(studentId);
+    res.json(path);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : '获取路径失败' });
   }
 });
