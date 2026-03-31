@@ -37,6 +37,13 @@ type AIPathResult = {
   steps: string[];
 };
 
+type AIParentAdviceResult = {
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  advice: string[];
+};
+
 function extractJson(text: string) {
   const cleaned = text
     .replace(/```json/gi, '')
@@ -246,5 +253,63 @@ export async function generateLearningPathWithAI(params: {
   return {
     title: String(data.title || '个性化成长路径'),
     steps: asStringArray(data.steps, 4)
+  };
+}
+
+export async function generateParentAdviceWithAI(params: {
+  studentName: string;
+  taskTitle?: string;
+  latestFeedback?: string;
+  metrics: {
+    logic: number;
+    resilience: number;
+    creativity: number;
+    expression: number;
+    collaboration: number;
+  };
+}): Promise<AIParentAdviceResult> {
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
+  }
+
+  const prompt = `
+你是“星脉 Synapse”的家长沟通助手。
+请根据学生最近学习数据，生成一份适合家长阅读的建议，语言清晰、温和、具体。
+
+学生姓名：${params.studentName}
+最近任务：${params.taskTitle || '暂无'}
+最近反馈：${params.latestFeedback || '暂无'}
+
+能力数据：
+逻辑 ${params.metrics.logic}
+抗挫 ${params.metrics.resilience}
+创造 ${params.metrics.creativity}
+表达 ${params.metrics.expression}
+协作 ${params.metrics.collaboration}
+
+请只输出 JSON：
+{
+  "summary": "总体总结",
+  "strengths": ["优势1", "优势2", "优势3"],
+  "risks": ["关注点1", "关注点2"],
+  "advice": ["建议1", "建议2", "建议3"]
+}
+`;
+
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: prompt
+  });
+
+  const text = response.output_text?.trim() || '';
+  console.log('🔥 OpenAI 家长建议原始文本返回 =', text);
+
+  const data = extractJson(text);
+
+  return {
+    summary: String(data.summary || '孩子当前整体状态积极，适合继续通过兴趣驱动学习。'),
+    strengths: asStringArray(data.strengths, 3),
+    risks: asStringArray(data.risks, 2),
+    advice: asStringArray(data.advice, 3)
   };
 }
