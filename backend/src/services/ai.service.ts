@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-console.log('GEMINI env exists =', !!process.env.GEMINI_API_KEY);
+// 临时方案：先写死新生成的 Gemini Key，确认功能跑通后再改回环境变量
+const apiKey = 'AIzaSyBKuZv5YBIvbmZj4uVnKCCiqzPUkHlEncY';
+
+console.log('GEMINI test key exists =', !!apiKey);
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }) : null;
@@ -39,7 +41,7 @@ export function hasAI() {
 
 export async function generateTaskWithAI(content: string): Promise<AITaskResult> {
   if (!model) {
-    throw new Error('未配置 GEMINI_API_KEY');
+    throw new Error('未配置 Gemini 模型');
   }
 
   const prompt = `
@@ -77,8 +79,12 @@ JSON 格式如下：
     title: String(data.title || '兴趣折射任务'),
     subject: String(data.subject || '跨学科探究'),
     description: String(data.description || '围绕兴趣完成一次跨学科探究任务。'),
-    questions: Array.isArray(data.questions) ? data.questions.map(String).slice(0, 3) : [],
-    hints: Array.isArray(data.hints) ? data.hints.map(String).slice(0, 3) : []
+    questions: Array.isArray(data.questions)
+      ? data.questions.map(String).slice(0, 3)
+      : [],
+    hints: Array.isArray(data.hints)
+      ? data.hints.map(String).slice(0, 3)
+      : []
   };
 }
 
@@ -88,7 +94,7 @@ export async function generateFeedbackWithAI(params: {
   answer: string;
 }): Promise<AIFeedbackResult> {
   if (!model) {
-    throw new Error('未配置 GEMINI_API_KEY');
+    throw new Error('未配置 Gemini 模型');
   }
 
   const prompt = `
@@ -128,6 +134,8 @@ JSON 格式如下：
 
   return {
     score,
-    feedback: String(data.feedback || '你的作答已经有清晰思路，建议补充更多过程和变量分析。')
+    feedback: String(
+      data.feedback || '你的作答已经有清晰思路，建议补充更多过程和变量分析。'
+    )
   };
 }
