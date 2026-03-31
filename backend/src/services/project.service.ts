@@ -74,31 +74,46 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
 
   let taskData = buildFallbackTask(content);
 
- if (hasAI()) {
-  try {
-    console.log('✅ 开始调用 Gemini 生成任务');
-    const aiTask = await generateTaskWithAI(content);
-    console.log('✅ Gemini 返回结果:', aiTask);
+  console.log('================ AI TASK START ================');
+  console.log('hasAI =', hasAI());
+  console.log('interest content =', content);
 
-    if (
-      aiTask.title &&
-      aiTask.subject &&
-      aiTask.description &&
-      aiTask.questions.length === 3 &&
-      aiTask.hints.length === 3
-    ) {
-      taskData = aiTask;
-      console.log('✅ 已使用 Gemini 生成结果');
-    } else {
-      throw new Error(`Gemini 返回格式不完整: ${JSON.stringify(aiTask)}`);
+  if (hasAI()) {
+    try {
+      console.log('✅ 开始调用 Gemini 生成任务');
+
+      const aiTask = await generateTaskWithAI(content);
+
+      console.log('✅ Gemini 返回结果 =', JSON.stringify(aiTask));
+
+      const isValid =
+        Boolean(aiTask.title) &&
+        Boolean(aiTask.subject) &&
+        Boolean(aiTask.description) &&
+        Array.isArray(aiTask.questions) &&
+        Array.isArray(aiTask.hints) &&
+        aiTask.questions.length === 3 &&
+        aiTask.hints.length === 3;
+
+      if (isValid) {
+        taskData = aiTask;
+        console.log('✅ 已使用 Gemini 生成结果');
+      } else {
+        console.log('⚠️ Gemini 返回格式不完整，继续使用模板');
+        console.log('⚠️ 不完整内容 =', JSON.stringify(aiTask));
+      }
+    } catch (error) {
+      console.error('❌ Gemini 生成任务失败:', error);
+      console.log('⚠️ 已回退为模板任务');
     }
-  } catch (error) {
-    console.error('❌ Gemini 生成任务失败:', error);
-    throw error;
+  } else {
+    console.log('⚠️ 未检测到 GEMINI_API_KEY，直接使用模板');
   }
-} else {
-  console.log('⚠️ 未检测到 GEMINI_API_KEY，直接使用模板');
-}
+
+  console.log('最终使用的任务标题 =', taskData.title);
+  console.log('最终使用的任务学科 =', taskData.subject);
+  console.log('================= AI TASK END =================');
+
   return {
     id: createId('task'),
     studentId: interest.studentId,
@@ -159,19 +174,36 @@ export async function submitAnswer(studentId: string, taskId: string, answer: st
       ? '你的回答已经有方向了，但还可以再补充实验步骤、数据记录和结论，这样会更像一个完整的项目作品。'
       : '你的作答结构比较完整，已经体现了观察、分析和结论。下一步建议补充对变量变化的解释，让论证更严谨。';
 
+  console.log('============== AI FEEDBACK START ==============');
+  console.log('hasAI =', hasAI());
+  console.log('task title =', task.title);
+  console.log('answer length =', cleanedAnswer.length);
+
   if (hasAI()) {
     try {
+      console.log('✅ 开始调用 Gemini 生成反馈');
+
       const aiResult = await generateFeedbackWithAI({
         title: task.title,
         subject: task.subject,
         answer: cleanedAnswer
       });
+
+      console.log('✅ Gemini 反馈结果 =', JSON.stringify(aiResult));
+
       score = aiResult.score;
       feedback = aiResult.feedback;
+      console.log('✅ 已使用 Gemini 反馈结果');
     } catch (error) {
-      console.error('AI 反馈失败，已回退规则反馈:', error);
+      console.error('❌ Gemini 反馈失败，已回退规则反馈:', error);
     }
+  } else {
+    console.log('⚠️ 未检测到 GEMINI_API_KEY，直接使用规则反馈');
   }
+
+  console.log('最终得分 =', score);
+  console.log('最终反馈 =', feedback);
+  console.log('=============== AI FEEDBACK END ===============');
 
   const submission: Submission = {
     id: createId('sub'),
