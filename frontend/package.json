@@ -1,7 +1,7 @@
 {
   "name": "synapse-frontend",
-  "version": "1.0.0",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,13 +11,14 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.0"
+    "react-router-dom": "^6.30.1",
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.20",
-    "@types/react-dom": "^18.3.6",
-    "@vitejs/plugin-react": "^4.4.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
     "typescript": "^5.8.3",
-    "vite": "^5.4.18"
+    "vite": "^5.4.10"
   }
 }
