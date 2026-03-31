@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from '../middleware/auth.middleware.js';
 import {
   exportStudentReport,
   getChildrenByParentId,
+  getParentAdvice,
   getRadarByStudentIdForParent,
   getStudentOverviewForParent
 } from '../services/parent.service.js';
@@ -25,10 +26,7 @@ parentRouter.get('/getRadar', (req, res) => {
   try {
     const parentId = req.auth!.userId;
     const studentId = String(req.query.studentId || '');
-
-    if (!studentId) {
-      return res.status(400).json({ message: '缺少 studentId' });
-    }
+    if (!studentId) return res.status(400).json({ message: '缺少 studentId' });
 
     const radar = getRadarByStudentIdForParent(parentId, studentId);
     res.json(radar);
@@ -41,10 +39,7 @@ parentRouter.get('/getOverview', (req, res) => {
   try {
     const parentId = req.auth!.userId;
     const studentId = String(req.query.studentId || '');
-
-    if (!studentId) {
-      return res.status(400).json({ message: '缺少 studentId' });
-    }
+    if (!studentId) return res.status(400).json({ message: '缺少 studentId' });
 
     const overview = getStudentOverviewForParent(parentId, studentId);
     res.json(overview);
@@ -53,14 +48,24 @@ parentRouter.get('/getOverview', (req, res) => {
   }
 });
 
+parentRouter.get('/getAdvice', async (req, res) => {
+  try {
+    const parentId = req.auth!.userId;
+    const studentId = String(req.query.studentId || '');
+    if (!studentId) return res.status(400).json({ message: '缺少 studentId' });
+
+    const advice = await getParentAdvice(parentId, studentId);
+    res.json(advice);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : '获取AI建议失败' });
+  }
+});
+
 parentRouter.get('/exportReport', (req, res) => {
   try {
     const parentId = req.auth!.userId;
     const studentId = String(req.query.studentId || '');
-
-    if (!studentId) {
-      return res.status(400).json({ message: '缺少 studentId' });
-    }
+    if (!studentId) return res.status(400).json({ message: '缺少 studentId' });
 
     const html = exportStudentReport(parentId, studentId);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
