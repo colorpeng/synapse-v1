@@ -254,22 +254,23 @@ export function StudentPage() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
+    <div style={pageWrapStyle}>
       <section style={heroStyle}>
         <div>
           <div style={heroBadge}>学生端 V2</div>
-          <h2 style={{ margin: '10px 0', fontSize: 34 }}>兴趣 × 难度分层 × 连续成长</h2>
-          <p style={{ margin: 0, color: '#52606d', lineHeight: 1.8 }}>
+          <h2 style={heroTitleStyle}>兴趣 × 难度分层 × 连续成长</h2>
+          <p style={heroDescStyle}>
             现在你可以按自己的能力选择题目难度，用分步作答方式完成任务，还能直接用语音说出想法。
           </p>
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.9fr', gap: 20 }}>
-        <div style={{ display: 'grid', gap: 20 }}>
+      <div style={contentGridStyle}>
+        <div style={leftColumnStyle}>
           <section style={cardStyle}>
             <h3 style={sectionTitleStyle}>第 1 步：提交兴趣</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
+
+            <div style={formGroupStyle}>
               <label style={labelStyle}>兴趣类型</label>
               <select
                 value={interestType}
@@ -280,36 +281,37 @@ export function StudentPage() {
                 <option value="image">图片 URL</option>
                 <option value="link">视频/网页链接</option>
               </select>
+            </div>
 
+            <div style={formGroupStyle}>
               <label style={labelStyle}>兴趣内容</label>
-              <textarea
-                rows={4}
+              <AutoResizeTextarea
+                minRows={4}
                 value={interestContent}
-                onChange={(e) => setInterestContent(e.target.value)}
-                style={textareaStyle}
+                onChange={setInterestContent}
                 placeholder="比如：我喜欢英雄联盟的亚索、我喜欢黑洞、我喜欢悬疑小说……"
               />
+            </div>
 
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {!recordingField || recordingField !== 'interest' ? (
-                  <button onClick={() => startVoiceInput('interest')} style={ghostButtonStyle}>
-                    🎤 语音输入兴趣
-                  </button>
-                ) : (
-                  <button onClick={stopVoiceInput} style={dangerButtonStyle}>
-                    ⏹ 停止录音
-                  </button>
-                )}
-
-                <button onClick={handleSubmitInterest} disabled={submittingInterest} style={primaryButtonStyle}>
-                  {submittingInterest ? '生成中...' : '生成个性化探究任务'}
+            <div style={buttonRowStyle}>
+              {!recordingField || recordingField !== 'interest' ? (
+                <button onClick={() => startVoiceInput('interest')} style={ghostButtonStyle}>
+                  🎤 语音输入兴趣
                 </button>
-              </div>
+              ) : (
+                <button onClick={stopVoiceInput} style={dangerButtonStyle}>
+                  ⏹ 停止录音
+                </button>
+              )}
+
+              <button onClick={handleSubmitInterest} disabled={submittingInterest} style={primaryButtonStyle}>
+                {submittingInterest ? '生成中...' : '生成个性化探究任务'}
+              </button>
             </div>
           </section>
 
           <section style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={sectionHeaderRowStyle}>
               <h3 style={sectionTitleStyle}>第 2 步：查看任务</h3>
               <button onClick={loadTask} disabled={loadingTask} style={ghostButtonStyle}>
                 {loadingTask ? '刷新中...' : '刷新任务'}
@@ -317,14 +319,14 @@ export function StudentPage() {
             </div>
 
             {task ? (
-              <div style={{ display: 'grid', gap: 16 }}>
+              <div style={stackStyle}>
                 <InfoRow label="任务标题" value={task.title} />
                 <InfoRow label="对应学科" value={task.subject} />
                 <InfoRow label="任务描述" value={task.description} />
 
                 <div>
-                  <strong>选择难度</strong>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                  <strong style={strongTitleStyle}>选择难度</strong>
+                  <div style={difficultyRowStyle}>
                     <button onClick={() => setDifficulty('easy')} style={difficultyButtonStyle(difficulty === 'easy')}>
                       初级探索
                     </button>
@@ -338,9 +340,9 @@ export function StudentPage() {
                 </div>
 
                 <div style={softBoxStyle}>
-                  <strong>当前难度问题</strong>
-                  <ul>
-                    {currentQuestions.map((q) => <li key={q}>{q}</li>)}
+                  <strong style={strongTitleStyle}>当前难度问题</strong>
+                  <ul style={listStyle}>
+                    {currentQuestions.map((q) => <li key={q} style={listItemStyle}>{q}</li>)}
                   </ul>
                 </div>
 
@@ -350,22 +352,22 @@ export function StudentPage() {
 
                 {hints.length > 0 && (
                   <div style={softBoxStyle}>
-                    <strong>提示：</strong>
-                    <ul>
-                      {hints.map((item) => <li key={item}>{item}</li>)}
+                    <strong style={strongTitleStyle}>提示</strong>
+                    <ul style={listStyle}>
+                      {hints.map((item) => <li key={item} style={listItemStyle}>{item}</li>)}
                     </ul>
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ color: '#7b8794' }}>当前还没有任务，请先提交兴趣内容。</div>
+              <div style={emptyTextStyle}>当前还没有任务，请先提交兴趣内容。</div>
             )}
           </section>
 
           <section style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={sectionHeaderRowStyle}>
               <h3 style={sectionTitleStyle}>第 3 步：提交作答</h3>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={toggleRowStyle}>
                 <button onClick={() => setAnswerMode('structured')} style={answerModeButtonStyle(answerMode === 'structured')}>
                   分步作答
                 </button>
@@ -376,7 +378,7 @@ export function StudentPage() {
             </div>
 
             {answerMode === 'structured' ? (
-              <div style={{ display: 'grid', gap: 14 }}>
+              <div style={stackStyle}>
                 <AnswerField
                   title="1. 我观察到了什么"
                   placeholder="先写你看到的现象、场景或最直观的感受。"
@@ -415,16 +417,15 @@ export function StudentPage() {
                 />
               </div>
             ) : (
-              <textarea
-                rows={8}
+              <AutoResizeTextarea
+                minRows={8}
                 value={simpleAnswer}
-                onChange={(e) => setSimpleAnswer(e.target.value)}
-                style={textareaStyle}
+                onChange={setSimpleAnswer}
                 placeholder="用自己的话把想法完整写出来。"
               />
             )}
 
-            <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: 16 }}>
               <button onClick={handleSubmitAnswer} disabled={!task || submittingAnswer} style={primaryButtonStyle}>
                 {submittingAnswer ? '提交中...' : '提交作业'}
               </button>
@@ -437,18 +438,18 @@ export function StudentPage() {
 
                 {submitResult.submission.highlights?.length ? (
                   <div>
-                    <strong>你的亮点：</strong>
-                    <ul>
-                      {submitResult.submission.highlights.map((item) => <li key={item}>{item}</li>)}
+                    <strong style={strongTitleStyle}>你的亮点</strong>
+                    <ul style={listStyle}>
+                      {submitResult.submission.highlights.map((item) => <li key={item} style={listItemStyle}>{item}</li>)}
                     </ul>
                   </div>
                 ) : null}
 
                 {submitResult.submission.nextActions?.length ? (
                   <div>
-                    <strong>下一步建议：</strong>
-                    <ul>
-                      {submitResult.submission.nextActions.map((item) => <li key={item}>{item}</li>)}
+                    <strong style={strongTitleStyle}>下一步建议</strong>
+                    <ul style={listStyle}>
+                      {submitResult.submission.nextActions.map((item) => <li key={item} style={listItemStyle}>{item}</li>)}
                     </ul>
                   </div>
                 ) : null}
@@ -457,42 +458,68 @@ export function StudentPage() {
           </section>
         </div>
 
-        <div style={{ display: 'grid', gap: 20 }}>
+        <div style={rightColumnStyle}>
           <section style={cardStyle}>
             <h3 style={sectionTitleStyle}>学习画像</h3>
             {profile ? (
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div style={stackStyle}>
                 <TagGroup title="标签" items={profile.tags} />
                 <TagGroup title="优势" items={profile.strengths} />
                 <TagGroup title="下一步聚焦" items={profile.nextFocus} />
               </div>
             ) : (
-              <div style={{ color: '#7b8794' }}>暂无画像数据</div>
+              <div style={emptyTextStyle}>暂无画像数据</div>
             )}
           </section>
 
           <section style={cardStyle}>
             <h3 style={sectionTitleStyle}>连续学习路径</h3>
             {path ? (
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ fontWeight: 700, color: '#243b53' }}>{path.title}</div>
+              <div style={stackStyle}>
+                <div style={pathTitleStyle}>{path.title}</div>
                 {path.steps.map((step, index) => (
                   <div key={step} style={stepStyle}>
                     <div style={stepIndexStyle}>{index + 1}</div>
-                    <div>{step}</div>
+                    <div style={stepTextStyle}>{step}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{ color: '#7b8794' }}>暂无成长路径</div>
+              <div style={emptyTextStyle}>暂无成长路径</div>
             )}
           </section>
         </div>
       </div>
 
-      {success && <div style={{ color: '#157347', fontWeight: 700 }}>{success}</div>}
-      {error && <div style={{ color: '#c62828', fontWeight: 700 }}>{error}</div>}
+      {success && <div style={successTextStyle}>{success}</div>}
+      {error && <div style={errorTextStyle}>{error}</div>}
     </div>
+  );
+}
+
+function AutoResizeTextarea(props: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  minRows?: number;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.style.height = 'auto';
+    ref.current.style.height = `${ref.current.scrollHeight}px`;
+  }, [props.value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={props.minRows || 4}
+      value={props.value}
+      onChange={(e) => props.onChange(e.target.value)}
+      placeholder={props.placeholder}
+      style={textareaStyle}
+    />
   );
 }
 
@@ -507,8 +534,8 @@ function AnswerField(props: {
 }) {
   return (
     <div style={softBoxStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <strong>{props.title}</strong>
+      <div style={fieldHeaderStyle}>
+        <strong style={strongTitleStyle}>{props.title}</strong>
         {!props.recording ? (
           <button onClick={props.onVoice} style={ghostButtonStyle}>🎤 语音输入</button>
         ) : (
@@ -516,13 +543,14 @@ function AnswerField(props: {
         )}
       </div>
 
-      <textarea
-        rows={4}
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-        style={{ ...textareaStyle, marginTop: 10 }}
-        placeholder={props.placeholder}
-      />
+      <div style={{ marginTop: 12 }}>
+        <AutoResizeTextarea
+          minRows={4}
+          value={props.value}
+          onChange={props.onChange}
+          placeholder={props.placeholder}
+        />
+      </div>
     </div>
   );
 }
@@ -530,8 +558,8 @@ function AnswerField(props: {
 function TagGroup({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>{title}</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={tagGroupTitleStyle}>{title}</div>
+      <div style={tagWrapStyle}>
         {items.map((item) => (
           <span key={item} style={tagStyle}>{item}</span>
         ))}
@@ -542,17 +570,48 @@ function TagGroup({ title, items }: { title: string; items: string[] }) {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <strong>{label}：</strong>{value}
+    <div style={infoRowStyle}>
+      <strong style={infoLabelStyle}>{label}：</strong>
+      <span style={infoValueStyle}>{value}</span>
     </div>
   );
 }
+
+const pageWrapStyle: CSSProperties = {
+  width: '100%',
+  maxWidth: 1200,
+  margin: '0 auto',
+  display: 'grid',
+  gap: 20
+};
+
+const contentGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1.4fr) minmax(300px, 0.9fr)',
+  gap: 20,
+  alignItems: 'start'
+};
+
+const leftColumnStyle: CSSProperties = {
+  display: 'grid',
+  gap: 20,
+  minWidth: 0
+};
+
+const rightColumnStyle: CSSProperties = {
+  display: 'grid',
+  gap: 20,
+  minWidth: 0
+};
 
 const heroStyle: CSSProperties = {
   background: 'linear-gradient(135deg, #ffffff 0%, #f5f8ff 100%)',
   borderRadius: 28,
   padding: 28,
-  boxShadow: '0 16px 40px rgba(49,86,211,0.08)'
+  boxShadow: '0 16px 40px rgba(49,86,211,0.08)',
+  width: '100%',
+  minWidth: 0,
+  overflow: 'hidden'
 };
 
 const heroBadge: CSSProperties = {
@@ -561,50 +620,128 @@ const heroBadge: CSSProperties = {
   borderRadius: 999,
   background: '#e8efff',
   color: '#3156d3',
-  fontWeight: 700
+  fontWeight: 700,
+  fontSize: 13
+};
+
+const heroTitleStyle: CSSProperties = {
+  margin: '12px 0 10px',
+  fontSize: 34,
+  lineHeight: 1.2,
+  color: '#102a43',
+  wordBreak: 'break-word'
+};
+
+const heroDescStyle: CSSProperties = {
+  margin: 0,
+  color: '#52606d',
+  lineHeight: 1.8,
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word'
 };
 
 const cardStyle: CSSProperties = {
   background: '#fff',
   borderRadius: 24,
   padding: 22,
-  boxShadow: '0 12px 32px rgba(15,23,42,0.06)'
-};
-
-const softBoxStyle: CSSProperties = {
-  background: '#f8fbff',
-  borderRadius: 18,
-  padding: 16,
-  border: '1px solid #dbeafe'
+  boxShadow: '0 12px 32px rgba(15,23,42,0.06)',
+  width: '100%',
+  minWidth: 0,
+  overflow: 'hidden',
+  boxSizing: 'border-box'
 };
 
 const sectionTitleStyle: CSSProperties = {
-  marginTop: 0,
-  marginBottom: 16,
+  margin: 0,
   fontSize: 24,
-  color: '#102a43'
+  color: '#102a43',
+  lineHeight: 1.25,
+  wordBreak: 'break-word'
+};
+
+const sectionHeaderRowStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  flexWrap: 'wrap',
+  marginBottom: 16
+};
+
+const formGroupStyle: CSSProperties = {
+  display: 'grid',
+  gap: 10,
+  marginBottom: 14
 };
 
 const labelStyle: CSSProperties = {
   fontWeight: 700,
-  color: '#243b53'
+  color: '#243b53',
+  fontSize: 15
 };
 
 const inputStyle: CSSProperties = {
   width: '100%',
+  maxWidth: '100%',
   padding: '12px 14px',
   borderRadius: 14,
   border: '1px solid #d9e2ec',
-  fontSize: 15
+  fontSize: 15,
+  boxSizing: 'border-box',
+  minWidth: 0
 };
 
 const textareaStyle: CSSProperties = {
   width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
   padding: '14px',
   borderRadius: 16,
   border: '1px solid #d9e2ec',
-  resize: 'vertical',
-  fontSize: 15
+  resize: 'none',
+  fontSize: 15,
+  lineHeight: 1.7,
+  boxSizing: 'border-box',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word',
+  overflow: 'hidden',
+  display: 'block'
+};
+
+const buttonRowStyle: CSSProperties = {
+  display: 'flex',
+  gap: 12,
+  flexWrap: 'wrap',
+  alignItems: 'center'
+};
+
+const toggleRowStyle: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  flexWrap: 'wrap'
+};
+
+const difficultyRowStyle: CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  marginTop: 10,
+  flexWrap: 'wrap'
+};
+
+const stackStyle: CSSProperties = {
+  display: 'grid',
+  gap: 16,
+  minWidth: 0
+};
+
+const fieldHeaderStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'center',
+  flexWrap: 'wrap'
 };
 
 const primaryButtonStyle: CSSProperties = {
@@ -614,7 +751,9 @@ const primaryButtonStyle: CSSProperties = {
   background: 'linear-gradient(90deg, #3156d3, #6f4ef6)',
   color: '#fff',
   fontWeight: 800,
-  cursor: 'pointer'
+  cursor: 'pointer',
+  minWidth: 180,
+  boxShadow: '0 10px 20px rgba(111,78,246,0.18)'
 };
 
 const ghostButtonStyle: CSSProperties = {
@@ -637,14 +776,41 @@ const dangerButtonStyle: CSSProperties = {
   cursor: 'pointer'
 };
 
+const softBoxStyle: CSSProperties = {
+  background: '#f8fbff',
+  borderRadius: 18,
+  padding: 16,
+  border: '1px solid #dbeafe',
+  width: '100%',
+  minWidth: 0,
+  overflow: 'hidden',
+  boxSizing: 'border-box'
+};
+
 const resultBoxStyle: CSSProperties = {
-  marginTop: 14,
+  marginTop: 16,
   background: '#f6fff8',
   borderRadius: 16,
   padding: 16,
   border: '1px solid #cdebd5',
   display: 'grid',
-  gap: 8
+  gap: 12,
+  width: '100%',
+  minWidth: 0,
+  overflow: 'hidden',
+  boxSizing: 'border-box'
+};
+
+const tagWrapStyle: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  flexWrap: 'wrap'
+};
+
+const tagGroupTitleStyle: CSSProperties = {
+  fontWeight: 700,
+  marginBottom: 8,
+  color: '#243b53'
 };
 
 const tagStyle: CSSProperties = {
@@ -653,18 +819,28 @@ const tagStyle: CSSProperties = {
   background: '#eef4ff',
   color: '#3156d3',
   fontWeight: 700,
-  fontSize: 13
+  fontSize: 13,
+  wordBreak: 'break-word'
+};
+
+const pathTitleStyle: CSSProperties = {
+  fontWeight: 700,
+  color: '#243b53',
+  wordBreak: 'break-word'
 };
 
 const stepStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '32px 1fr',
+  gridTemplateColumns: '32px minmax(0, 1fr)',
   gap: 12,
-  alignItems: 'center',
+  alignItems: 'start',
   background: '#f8fbff',
   borderRadius: 16,
   padding: 12,
-  border: '1px solid #dbeafe'
+  border: '1px solid #dbeafe',
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box'
 };
 
 const stepIndexStyle: CSSProperties = {
@@ -676,7 +852,15 @@ const stepIndexStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontWeight: 800
+  fontWeight: 800,
+  flexShrink: 0
+};
+
+const stepTextStyle: CSSProperties = {
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word',
+  minWidth: 0
 };
 
 const difficultyButtonStyle = (active: boolean): CSSProperties => ({
@@ -698,3 +882,52 @@ const answerModeButtonStyle = (active: boolean): CSSProperties => ({
   fontWeight: 700,
   cursor: 'pointer'
 });
+
+const infoRowStyle: CSSProperties = {
+  width: '100%',
+  minWidth: 0,
+  lineHeight: 1.7
+};
+
+const infoLabelStyle: CSSProperties = {
+  color: '#243b53'
+};
+
+const infoValueStyle: CSSProperties = {
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word'
+};
+
+const listStyle: CSSProperties = {
+  margin: '10px 0 0',
+  paddingLeft: 20
+};
+
+const listItemStyle: CSSProperties = {
+  marginBottom: 8,
+  lineHeight: 1.7,
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word'
+};
+
+const strongTitleStyle: CSSProperties = {
+  color: '#243b53'
+};
+
+const emptyTextStyle: CSSProperties = {
+  color: '#7b8794',
+  lineHeight: 1.7
+};
+
+const successTextStyle: CSSProperties = {
+  color: '#157347',
+  fontWeight: 700,
+  lineHeight: 1.6
+};
+
+const errorTextStyle: CSSProperties = {
+  color: '#c62828',
+  fontWeight: 700,
+  lineHeight: 1.6
+};
