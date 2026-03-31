@@ -1,13 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// ✅ 临时写死 key（测试用）
-const apiKey = 'AIzaSyBKuZv5YBIvbmZj4uVnKCCiqzPUkHlEncY';
-
-// ❗ 验证
-console.log('GEMINI test key exists =', !!apiKey);
+const apiKey = process.env.GEMINI_API_KEY || '';
+console.log('GEMINI env exists =', !!process.env.GEMINI_API_KEY);
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }) : null;
 
 type AITaskResult = {
   title: string;
@@ -23,10 +20,16 @@ type AIFeedbackResult = {
 };
 
 function extractJson(text: string) {
-  const match = text.match(/\{[\s\S]*\}/);
+  const cleaned = text
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+  const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) {
-    throw new Error('AI 返回中没有可解析 JSON');
+    throw new Error(`AI 返回中没有可解析 JSON。原文: ${text}`);
   }
+
   return JSON.parse(match[0]);
 }
 
@@ -62,8 +65,12 @@ JSON 格式如下：
 4. 输出必须是合法 JSON
 `;
 
+  console.log('🔥 Gemini generateTaskWithAI 被调用了');
+
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
+  console.log('🔥 Gemini 原始文本返回 =', text);
+
   const data = extractJson(text);
 
   return {
@@ -107,8 +114,12 @@ JSON 格式如下：
 4. score 必须是整数
 `;
 
+  console.log('🔥 Gemini generateFeedbackWithAI 被调用了');
+
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
+  console.log('🔥 Gemini 反馈原始文本返回 =', text);
+
   const data = extractJson(text);
 
   let score = Number(data.score || 80);
