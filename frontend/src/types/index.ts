@@ -13,6 +13,12 @@ export interface AuthResponse {
   message: string;
 }
 
+export interface DifficultyLevels {
+  easy: string[];
+  medium: string[];
+  hard: string[];
+}
+
 export interface ProjectTask {
   id: string;
   studentId: string;
@@ -22,7 +28,15 @@ export interface ProjectTask {
   description: string;
   questions: string[];
   hints: string[];
+  difficultyLevels?: DifficultyLevels;
   createdAt: string;
+}
+
+export interface StructuredAnswer {
+  observation: string;
+  comparison: string;
+  pattern: string;
+  conclusion: string;
 }
 
 export interface SubmissionResponse {
@@ -35,6 +49,8 @@ export interface SubmissionResponse {
     feedback: string;
     score: number;
     createdAt: string;
+    highlights?: string[];
+    nextActions?: string[];
   };
 }
 
