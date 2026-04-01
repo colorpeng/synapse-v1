@@ -1,15 +1,10 @@
 import OpenAI from 'openai';
+import type { DifficultyLevels, VisualStep } from '../types/models.js';
 
 const apiKey = process.env.OPENAI_API_KEY || '';
 console.log('OPENAI env exists =', !!process.env.OPENAI_API_KEY);
 
 const client = apiKey ? new OpenAI({ apiKey }) : null;
-
-type DifficultyLevels = {
-  easy: string[];
-  medium: string[];
-  hard: string[];
-};
 
 type AITaskResult = {
   title: string;
@@ -17,6 +12,7 @@ type AITaskResult = {
   description: string;
   difficultyLevels: DifficultyLevels;
   hints: string[];
+  visualPrompt: string;
 };
 
 type AIFeedbackResult = {
@@ -66,6 +62,35 @@ export function hasAI() {
   return Boolean(client);
 }
 
+export function buildDefaultVisualSteps(): VisualStep[] {
+  return [
+    {
+      key: 'observe',
+      title: '先观察',
+      shortText: '先看清你最感兴趣的现象或场景。',
+      icon: '👀'
+    },
+    {
+      key: 'compare',
+      title: '做比较',
+      shortText: '比较两个或三个例子，找出差别。',
+      icon: '⚖️'
+    },
+    {
+      key: 'pattern',
+      title: '找规律',
+      shortText: '从比较结果里找共同点和变化。',
+      icon: '🧠'
+    },
+    {
+      key: 'conclusion',
+      title: '下结论',
+      shortText: '用自己的话说出你最终发现了什么。',
+      icon: '✅'
+    }
+  ];
+}
+
 export async function generateTaskWithAI(content: string): Promise<AITaskResult> {
   if (!client) {
     throw new Error('未配置 OPENAI_API_KEY');
@@ -74,7 +99,7 @@ export async function generateTaskWithAI(content: string): Promise<AITaskResult>
   const prompt = `
 你是“星脉 Synapse”的学生任务设计助手。
 目标用户是 12-16 岁学生。
-请基于学生兴趣，生成一个“容易上手、循序渐进”的跨学科项目任务。
+请基于学生兴趣，生成一个“容易上手、循序渐进、图文友好”的跨学科项目任务。
 
 学生兴趣：${content}
 
@@ -85,8 +110,9 @@ export async function generateTaskWithAI(content: string): Promise<AITaskResult>
 4. hard 难度才允许出现较强分析与优化
 5. 每个难度固定输出 3 个问题
 6. hints 固定输出 3 条，语气友好、具体、像老师在带学生做任务
-7. 全部用中文
-8. 只输出 JSON，不要输出任何解释
+7. visualPrompt 要写成“适合学生看的任务引导图提示词”，强调信息图/教育海报风格，而不是装饰插画
+8. 全部用中文
+9. 只输出 JSON，不要输出任何解释
 
 JSON 格式如下：
 {
@@ -98,7 +124,8 @@ JSON 格式如下：
     "medium": ["问题1", "问题2", "问题3"],
     "hard": ["问题1", "问题2", "问题3"]
   },
-  "hints": ["提示1", "提示2", "提示3"]
+  "hints": ["提示1", "提示2", "提示3"],
+  "visualPrompt": "一段用于生成学习任务引导图的中文提示词"
 }
 `;
 
@@ -121,8 +148,84 @@ JSON 格式如下：
       medium: asStringArray(data.difficultyLevels?.medium, 3),
       hard: asStringArray(data.difficultyLevels?.hard, 3)
     },
-    hints: asStringArray(data.hints, 3)
+    hints: asStringArray(data.hints, 3),
+    visualPrompt: String(
+      data.visualPrompt ||
+        `为“${content}”生成一张适合12-16岁学生的学习任务引导图，信息图海报风格，清晰展示观察、比较、规律、结论四个步骤，图文结合，易懂，不要复杂背景。`
+    )
   };
+}
+
+export async function generateTaskVisualWithAI(visualPrompt: string): Promise<string> {
+  if (!client) {
+    throw new Error('未配置 OPENAI_API_KEY');
+  }
+
+  const response = await client.responses.create({
+    model: 'gpt-5.2',
+    input: visualPrompt,
+    tools: [{ type: 'image_generation' }]
+  });
+
+  const imageData = response.output
+    .filter((item: any) => item.type === 'image_generation_call')
+    .map((item: any) => item.result)[0];
+
+  if (!imageData) {
+    throw new Error('未生成任务图片');
+  }
+
+  return `data:image/png;base64,${imageData}`;
+}
+
+export function buildFallbackVisualGuide(title: string, subject: string, description: string) {
+  const safeTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeSubject = subject.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeDesc = description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+    <defs>
+      <linearGradient id="bg" x1="0" x2="1">
+        <stop offset="0%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#1e3a8a"/>
+      </linearGradient>
+      <linearGradient id="card" x1="0" x2="1">
+        <stop offset="0%" stop-color="#2563eb"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+    </defs>
+    <rect width="1200" height="720" fill="url(#bg)"/>
+    <rect x="60" y="60" rx="28" ry="28" width="1080" height="600" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="90" y="130" font-size="26" fill="#c7d2fe" font-family="Arial, sans-serif">星脉 Synapse｜任务引导图</text>
+    <text x="90" y="200" font-size="46" font-weight="700" fill="#ffffff" font-family="Arial, sans-serif">${safeTitle}</text>
+    <text x="90" y="252" font-size="24" fill="#dbeafe" font-family="Arial, sans-serif">${safeSubject}</text>
+    <foreignObject x="90" y="285" width="1020" height="90">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="font-size:22px;color:#e2e8f0;line-height:1.6;font-family:Arial,sans-serif;">
+        ${safeDesc}
+      </div>
+    </foreignObject>
+
+    <rect x="90" y="410" rx="20" ry="20" width="220" height="170" fill="url(#card)"/>
+    <rect x="350" y="410" rx="20" ry="20" width="220" height="170" fill="url(#card)"/>
+    <rect x="610" y="410" rx="20" ry="20" width="220" height="170" fill="url(#card)"/>
+    <rect x="870" y="410" rx="20" ry="20" width="220" height="170" fill="url(#card)"/>
+
+    <text x="120" y="470" font-size="42">👀</text>
+    <text x="120" y="520" font-size="28" fill="#fff" font-family="Arial, sans-serif">先观察</text>
+
+    <text x="380" y="470" font-size="42">⚖️</text>
+    <text x="380" y="520" font-size="28" fill="#fff" font-family="Arial, sans-serif">做比较</text>
+
+    <text x="640" y="470" font-size="42">🧠</text>
+    <text x="640" y="520" font-size="28" fill="#fff" font-family="Arial, sans-serif">找规律</text>
+
+    <text x="900" y="470" font-size="42">✅</text>
+    <text x="900" y="520" font-size="28" fill="#fff" font-family="Arial, sans-serif">下结论</text>
+  </svg>
+  `.trim();
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 export async function generateFeedbackWithAI(params: {
