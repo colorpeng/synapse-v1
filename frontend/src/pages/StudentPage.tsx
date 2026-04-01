@@ -252,7 +252,7 @@ export function StudentPage() {
 
   return (
     <div style={pageWrapStyle}>
-      <section style={heroStyle}>
+      <section style={heroStyle} className="synapse-card">
         <div style={heroInnerStyle}>
           <div style={heroBadge}>学生端 V2</div>
           <h2 style={heroTitleStyle}>兴趣 × 难度分层 × 连续成长</h2>
@@ -262,9 +262,9 @@ export function StudentPage() {
         </div>
       </section>
 
-      <div style={responsiveGridStyle}>
+      <div style={responsiveGridStyle} className="synapse-responsive-grid">
         <div style={leftColumnStyle}>
-          <section style={cardStyle}>
+          <section style={cardStyle} className="synapse-card">
             <h3 style={sectionTitleStyle}>第 1 步：提交兴趣</h3>
 
             <div style={formGroupStyle}>
@@ -292,25 +292,30 @@ export function StudentPage() {
 
             <div style={buttonRowStyle}>
               {!recordingField || recordingField !== 'interest' ? (
-                <button onClick={() => startVoiceInput('interest')} style={ghostButtonStyle}>
+                <button onClick={() => startVoiceInput('interest')} style={ghostButtonStyle} className="synapse-secondary-btn">
                   🎤 语音输入兴趣
                 </button>
               ) : (
-                <button onClick={stopVoiceInput} style={dangerButtonStyle}>
+                <button onClick={stopVoiceInput} style={dangerButtonStyle} className="synapse-danger-btn">
                   ⏹ 停止录音
                 </button>
               )}
 
-              <button onClick={handleSubmitInterest} disabled={submittingInterest} style={primaryButtonStyle}>
+              <button
+                onClick={handleSubmitInterest}
+                disabled={submittingInterest}
+                style={primaryButtonStyle}
+                className="synapse-primary-btn"
+              >
                 {submittingInterest ? '生成中...' : '生成个性化探究任务'}
               </button>
             </div>
           </section>
 
-          <section style={cardStyle}>
+          <section style={cardStyle} className="synapse-card">
             <div style={sectionHeaderRowStyle}>
               <h3 style={sectionTitleStyle}>第 2 步：查看任务</h3>
-              <button onClick={loadTask} disabled={loadingTask} style={ghostButtonStyle}>
+              <button onClick={loadTask} disabled={loadingTask} style={ghostButtonStyle} className="synapse-secondary-btn">
                 {loadingTask ? '刷新中...' : '刷新任务'}
               </button>
             </div>
@@ -336,16 +341,16 @@ export function StudentPage() {
                   </div>
                 </div>
 
-                <div style={softBoxStyle}>
-                  <strong style={strongTitleStyle}>当前难度问题</strong>
+                <div style={questionBoxStyle}>
+                  <strong style={questionTitleStyle}>当前难度问题</strong>
                   <ul style={listStyle}>
                     {currentQuestions.map((q) => (
-                      <li key={q} style={listItemStyle}>{q}</li>
+                      <li key={q} style={questionListItemStyle}>{q}</li>
                     ))}
                   </ul>
                 </div>
 
-                <button onClick={handleLoadHints} disabled={loadingHints} style={ghostButtonStyle}>
+                <button onClick={handleLoadHints} disabled={loadingHints} style={ghostButtonStyle} className="synapse-secondary-btn">
                   {loadingHints ? '加载中...' : '查看苏格拉底分层提示'}
                 </button>
 
@@ -365,7 +370,7 @@ export function StudentPage() {
             )}
           </section>
 
-          <section style={cardStyle}>
+          <section style={cardStyle} className="synapse-card">
             <div style={sectionHeaderRowStyle}>
               <h3 style={sectionTitleStyle}>第 3 步：提交作答</h3>
               <div style={toggleRowStyle}>
@@ -427,7 +432,12 @@ export function StudentPage() {
             )}
 
             <div style={{ marginTop: 16 }}>
-              <button onClick={handleSubmitAnswer} disabled={!task || submittingAnswer} style={primaryButtonStyle}>
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={!task || submittingAnswer}
+                style={primaryButtonStyle}
+                className="synapse-primary-btn"
+              >
                 {submittingAnswer ? '提交中...' : '提交作业'}
               </button>
             </div>
@@ -464,7 +474,7 @@ export function StudentPage() {
         </div>
 
         <div style={rightColumnStyle}>
-          <section style={cardStyle}>
+          <section style={cardStyle} className="synapse-card">
             <h3 style={sectionTitleStyle}>学习画像</h3>
             {profile ? (
               <div style={stackStyle}>
@@ -477,7 +487,7 @@ export function StudentPage() {
             )}
           </section>
 
-          <section style={cardStyle}>
+          <section style={cardStyle} className="synapse-card">
             <h3 style={sectionTitleStyle}>连续学习路径</h3>
             {path ? (
               <div style={stackStyle}>
@@ -542,9 +552,13 @@ function AnswerField(props: {
       <div style={fieldHeaderStyle}>
         <strong style={strongTitleStyle}>{props.title}</strong>
         {!props.recording ? (
-          <button onClick={props.onVoice} style={ghostButtonStyle}>🎤 语音输入</button>
+          <button onClick={props.onVoice} style={ghostButtonStyle} className="synapse-secondary-btn">
+            🎤 语音输入
+          </button>
         ) : (
-          <button onClick={props.onStop} style={dangerButtonStyle}>⏹ 停止录音</button>
+          <button onClick={props.onStop} style={dangerButtonStyle} className="synapse-danger-btn">
+            ⏹ 停止录音
+          </button>
         )}
       </div>
 
@@ -566,7 +580,7 @@ function TagGroup({ title, items }: { title: string; items: string[] }) {
       <div style={tagGroupTitleStyle}>{title}</div>
       <div style={tagWrapStyle}>
         {items.map((item) => (
-          <span key={item} style={tagStyle}>{item}</span>
+          <span key={item} style={tagStyle} className="synapse-tag">{item}</span>
         ))}
       </div>
     </div>
@@ -585,15 +599,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function StatusBanner({ type, text }: { type: 'success' | 'error'; text: string }) {
   return (
     <div
-      style={{
-        borderRadius: 16,
-        padding: '14px 16px',
-        fontWeight: 700,
-        lineHeight: 1.6,
-        background: type === 'success' ? '#edfdf3' : '#fff1f2',
-        color: type === 'success' ? '#157347' : '#c62828',
-        border: type === 'success' ? '1px solid #cdebd5' : '1px solid #fecdd3'
-      }}
+      style={statusBannerStyle}
+      className={type === 'success' ? 'synapse-status-success' : 'synapse-status-error'}
     >
       {text}
     </div>
@@ -628,10 +635,8 @@ const rightColumnStyle: CSSProperties = {
 };
 
 const heroStyle: CSSProperties = {
-  background: 'linear-gradient(135deg, #ffffff 0%, #f4f7ff 55%, #eef2ff 100%)',
   borderRadius: 28,
   padding: 28,
-  boxShadow: '0 16px 40px rgba(49,86,211,0.08)',
   width: '100%',
   minWidth: 0,
   overflow: 'hidden'
@@ -645,23 +650,25 @@ const heroBadge: CSSProperties = {
   display: 'inline-block',
   padding: '8px 12px',
   borderRadius: 999,
-  background: '#e8efff',
-  color: '#3156d3',
-  fontWeight: 700,
-  fontSize: 13
+  background: 'rgba(109,124,255,0.16)',
+  border: '1px solid rgba(109,124,255,0.24)',
+  color: '#e7efff',
+  fontWeight: 800,
+  fontSize: 13,
+  marginBottom: 10
 };
 
 const heroTitleStyle: CSSProperties = {
   margin: '12px 0 10px',
   fontSize: 34,
   lineHeight: 1.2,
-  color: '#102a43',
+  color: '#ffffff',
   wordBreak: 'break-word'
 };
 
 const heroDescStyle: CSSProperties = {
   margin: 0,
-  color: '#52606d',
+  color: '#d7e3f4',
   lineHeight: 1.8,
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
@@ -669,10 +676,8 @@ const heroDescStyle: CSSProperties = {
 };
 
 const cardStyle: CSSProperties = {
-  background: '#fff',
   borderRadius: 24,
   padding: 22,
-  boxShadow: '0 14px 36px rgba(15,23,42,0.06)',
   width: '100%',
   minWidth: 0,
   overflow: 'hidden',
@@ -682,7 +687,7 @@ const cardStyle: CSSProperties = {
 const sectionTitleStyle: CSSProperties = {
   margin: 0,
   fontSize: 24,
-  color: '#102a43',
+  color: '#ffffff',
   lineHeight: 1.25,
   wordBreak: 'break-word'
 };
@@ -704,7 +709,7 @@ const formGroupStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontWeight: 700,
-  color: '#243b53',
+  color: '#f8fbff',
   fontSize: 15
 };
 
@@ -713,11 +718,9 @@ const inputStyle: CSSProperties = {
   maxWidth: '100%',
   padding: '12px 14px',
   borderRadius: 14,
-  border: '1px solid #d9e2ec',
   fontSize: 15,
   boxSizing: 'border-box',
-  minWidth: 0,
-  background: '#fff'
+  minWidth: 0
 };
 
 const textareaStyle: CSSProperties = {
@@ -726,7 +729,6 @@ const textareaStyle: CSSProperties = {
   minWidth: 0,
   padding: '14px',
   borderRadius: 16,
-  border: '1px solid #d9e2ec',
   resize: 'none',
   fontSize: 15,
   lineHeight: 1.75,
@@ -735,8 +737,7 @@ const textareaStyle: CSSProperties = {
   wordBreak: 'break-word',
   overflowWrap: 'break-word',
   overflow: 'hidden',
-  display: 'block',
-  background: '#fff'
+  display: 'block'
 };
 
 const buttonRowStyle: CSSProperties = {
@@ -774,54 +775,57 @@ const fieldHeaderStyle: CSSProperties = {
 };
 
 const primaryButtonStyle: CSSProperties = {
-  border: 'none',
   borderRadius: 16,
   padding: '14px 18px',
-  background: 'linear-gradient(90deg, #3156d3, #6f4ef6)',
-  color: '#fff',
-  fontWeight: 800,
-  cursor: 'pointer',
-  minWidth: 180,
-  boxShadow: '0 10px 20px rgba(111,78,246,0.18)'
+  minWidth: 180
 };
 
 const ghostButtonStyle: CSSProperties = {
-  border: '1px solid #c7d2fe',
   borderRadius: 14,
-  padding: '10px 14px',
-  background: '#eef4ff',
-  color: '#3156d3',
-  fontWeight: 700,
-  cursor: 'pointer'
+  padding: '10px 14px'
 };
 
 const dangerButtonStyle: CSSProperties = {
-  border: 'none',
   borderRadius: 14,
-  padding: '10px 14px',
-  background: '#fee2e2',
-  color: '#b91c1c',
-  fontWeight: 700,
-  cursor: 'pointer'
+  padding: '10px 14px'
 };
 
 const softBoxStyle: CSSProperties = {
-  background: '#f8fbff',
+  background: 'rgba(255,255,255,0.05)',
   borderRadius: 18,
   padding: 16,
-  border: '1px solid #dbeafe',
+  border: '1px solid rgba(148,163,184,0.18)',
   width: '100%',
   minWidth: 0,
   overflow: 'hidden',
   boxSizing: 'border-box'
 };
 
+const questionBoxStyle: CSSProperties = {
+  marginTop: 4,
+  padding: 18,
+  borderRadius: 18,
+  background: 'rgba(255,255,255,0.07)',
+  border: '1px solid rgba(148,163,184,0.22)',
+  color: '#eef4ff',
+  lineHeight: 1.8,
+  width: '100%',
+  minWidth: 0,
+  overflow: 'hidden',
+  boxSizing: 'border-box'
+};
+
+const questionTitleStyle: CSSProperties = {
+  color: '#ffffff',
+  fontWeight: 800
+};
+
 const resultBoxStyle: CSSProperties = {
   marginTop: 16,
-  background: '#f6fff8',
+  background: 'rgba(34,197,94,0.08)',
   borderRadius: 16,
   padding: 16,
-  border: '1px solid #cdebd5',
+  border: '1px solid rgba(34,197,94,0.18)',
   display: 'grid',
   gap: 12,
   width: '100%',
@@ -839,14 +843,12 @@ const tagWrapStyle: CSSProperties = {
 const tagGroupTitleStyle: CSSProperties = {
   fontWeight: 700,
   marginBottom: 8,
-  color: '#243b53'
+  color: '#ffffff'
 };
 
 const tagStyle: CSSProperties = {
   padding: '8px 12px',
   borderRadius: 999,
-  background: '#eef4ff',
-  color: '#3156d3',
   fontWeight: 700,
   fontSize: 13,
   wordBreak: 'break-word'
@@ -854,7 +856,7 @@ const tagStyle: CSSProperties = {
 
 const pathTitleStyle: CSSProperties = {
   fontWeight: 700,
-  color: '#243b53',
+  color: '#ffffff',
   wordBreak: 'break-word'
 };
 
@@ -863,10 +865,10 @@ const stepStyle: CSSProperties = {
   gridTemplateColumns: '32px minmax(0, 1fr)',
   gap: 12,
   alignItems: 'start',
-  background: '#f8fbff',
+  background: 'rgba(255,255,255,0.05)',
   borderRadius: 16,
   padding: 12,
-  border: '1px solid #dbeafe',
+  border: '1px solid rgba(148,163,184,0.18)',
   width: '100%',
   minWidth: 0,
   boxSizing: 'border-box'
@@ -876,7 +878,7 @@ const stepIndexStyle: CSSProperties = {
   width: 32,
   height: 32,
   borderRadius: 999,
-  background: 'linear-gradient(90deg, #3156d3, #6f4ef6)',
+  background: 'linear-gradient(90deg, #6d7cff, #8b5cf6)',
   color: '#fff',
   display: 'flex',
   alignItems: 'center',
@@ -890,25 +892,31 @@ const stepTextStyle: CSSProperties = {
   wordBreak: 'break-word',
   overflowWrap: 'break-word',
   minWidth: 0,
-  lineHeight: 1.7
+  lineHeight: 1.7,
+  color: '#d7e3f4'
 };
 
 const difficultyButtonStyle = (active: boolean): CSSProperties => ({
   border: 'none',
   borderRadius: 14,
   padding: '10px 14px',
-  background: active ? 'linear-gradient(90deg, #3156d3, #6f4ef6)' : '#eef4ff',
-  color: active ? '#fff' : '#3156d3',
+  background: active
+    ? 'linear-gradient(90deg, #6d7cff, #8b5cf6)'
+    : 'rgba(255,255,255,0.08)',
+  color: active ? '#fff' : '#dbe7ff',
   fontWeight: 800,
-  cursor: 'pointer'
+  cursor: 'pointer',
+  borderWidth: 1,
+  borderStyle: 'solid',
+  borderColor: active ? 'transparent' : 'rgba(109,124,255,0.18)'
 });
 
 const answerModeButtonStyle = (active: boolean): CSSProperties => ({
   border: 'none',
   borderRadius: 12,
   padding: '8px 12px',
-  background: active ? '#102a43' : '#eef2f7',
-  color: active ? '#fff' : '#486581',
+  background: active ? '#f8fbff' : 'rgba(255,255,255,0.08)',
+  color: active ? '#0f172a' : '#d7e3f4',
   fontWeight: 700,
   cursor: 'pointer'
 });
@@ -920,13 +928,14 @@ const infoRowStyle: CSSProperties = {
 };
 
 const infoLabelStyle: CSSProperties = {
-  color: '#243b53'
+  color: '#ffffff'
 };
 
 const infoValueStyle: CSSProperties = {
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
-  overflowWrap: 'break-word'
+  overflowWrap: 'break-word',
+  color: '#d7e3f4'
 };
 
 const listStyle: CSSProperties = {
@@ -938,14 +947,30 @@ const listItemStyle: CSSProperties = {
   marginBottom: 8,
   lineHeight: 1.7,
   wordBreak: 'break-word',
-  overflowWrap: 'break-word'
+  overflowWrap: 'break-word',
+  color: '#d7e3f4'
+};
+
+const questionListItemStyle: CSSProperties = {
+  marginBottom: 10,
+  lineHeight: 1.8,
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word',
+  color: '#eef4ff'
 };
 
 const strongTitleStyle: CSSProperties = {
-  color: '#243b53'
+  color: '#ffffff'
 };
 
 const emptyTextStyle: CSSProperties = {
-  color: '#7b8794',
+  color: '#a9b8cc',
   lineHeight: 1.7
+};
+
+const statusBannerStyle: CSSProperties = {
+  borderRadius: 16,
+  padding: '14px 16px',
+  fontWeight: 700,
+  lineHeight: 1.6
 };
