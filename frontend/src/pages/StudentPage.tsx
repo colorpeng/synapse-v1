@@ -5,7 +5,8 @@ import type {
   ProjectTask,
   StructuredAnswer,
   StudentProfile,
-  SubmissionResponse
+  SubmissionResponse,
+  VisualStep
 } from '../types';
 
 type DifficultyKey = 'easy' | 'medium' | 'hard';
@@ -28,6 +29,34 @@ declare global {
     SpeechRecognition?: new () => SpeechRecognitionLike;
   }
 }
+
+const difficultyMeta: Record<
+  DifficultyKey,
+  { icon: string; title: string; desc: string }
+> = {
+  easy: {
+    icon: '🌱',
+    title: '初级探索',
+    desc: '先看现象、说感受、找例子'
+  },
+  medium: {
+    icon: '🔍',
+    title: '进阶分析',
+    desc: '开始比较、记录、归纳'
+  },
+  hard: {
+    icon: '🚀',
+    title: '挑战模式',
+    desc: '提出解释、优化和更深分析'
+  }
+};
+
+const defaultVisualSteps: VisualStep[] = [
+  { key: 'observe', title: '先观察', shortText: '看一看你最熟悉的现象或场景。', icon: '👀' },
+  { key: 'compare', title: '做比较', shortText: '把两个或三个例子放在一起比较。', icon: '⚖️' },
+  { key: 'pattern', title: '找规律', shortText: '从比较结果里找共同点和变化。', icon: '🧠' },
+  { key: 'conclusion', title: '下结论', shortText: '说出你最终发现了什么。', icon: '✅' }
+];
 
 export function StudentPage() {
   const [interestType, setInterestType] = useState<'text' | 'image' | 'link'>('text');
@@ -62,6 +91,8 @@ export function StudentPage() {
     if (!task?.difficultyLevels) return task?.questions || [];
     return task.difficultyLevels[difficulty] || [];
   }, [task, difficulty]);
+
+  const visualSteps = task?.visualSteps?.length ? task.visualSteps : defaultVisualSteps;
 
   async function loadTask() {
     setLoadingTask(true);
@@ -194,7 +225,7 @@ export function StudentPage() {
         conclusion: ''
       });
       setSimpleAnswer('');
-      setSuccess('新的个性化探究任务已生成。');
+      setSuccess('新的个性化图文探究任务已生成。');
       await loadProfile();
       await loadPath();
     } catch (err) {
@@ -254,10 +285,10 @@ export function StudentPage() {
     <div style={pageWrapStyle}>
       <section style={heroStyle} className="synapse-card">
         <div style={heroInnerStyle}>
-          <div style={heroBadge}>学生端 V2</div>
-          <h2 style={heroTitleStyle}>兴趣 × 难度分层 × 连续成长</h2>
+          <div style={heroBadge}>学生端 V3 · 图文引导版</div>
+          <h2 style={heroTitleStyle}>不只读题，而是看着图一步一步做出来</h2>
           <p style={heroDescStyle}>
-            从兴趣出发，生成更适合学生理解的任务；通过分步作答、语音输入、连续反馈，让学习过程更轻松也更有成就感。
+            任务会自动生成视觉引导图，你可以先看图理解任务，再根据图标步骤完成观察、比较、规律和结论。
           </p>
         </div>
       </section>
@@ -307,14 +338,14 @@ export function StudentPage() {
                 style={primaryButtonStyle}
                 className="synapse-primary-btn"
               >
-                {submittingInterest ? '生成中...' : '生成个性化探究任务'}
+                {submittingInterest ? '生成中...' : '生成图文探究任务'}
               </button>
             </div>
           </section>
 
           <section style={cardStyle} className="synapse-card">
             <div style={sectionHeaderRowStyle}>
-              <h3 style={sectionTitleStyle}>第 2 步：查看任务</h3>
+              <h3 style={sectionTitleStyle}>第 2 步：图文查看任务</h3>
               <button onClick={loadTask} disabled={loadingTask} style={ghostButtonStyle} className="synapse-secondary-btn">
                 {loadingTask ? '刷新中...' : '刷新任务'}
               </button>
@@ -322,32 +353,51 @@ export function StudentPage() {
 
             {task ? (
               <div style={stackStyle}>
+                {task.visualGuideImage ? (
+                  <div style={imageWrapStyle}>
+                    <img
+                      src={task.visualGuideImage}
+                      alt="任务引导图"
+                      style={guideImageStyle}
+                    />
+                  </div>
+                ) : null}
+
                 <InfoRow label="任务标题" value={task.title} />
                 <InfoRow label="对应学科" value={task.subject} />
                 <InfoRow label="任务描述" value={task.description} />
 
                 <div>
                   <strong style={strongTitleStyle}>选择难度</strong>
-                  <div style={difficultyRowStyle}>
-                    <button onClick={() => setDifficulty('easy')} style={difficultyButtonStyle(difficulty === 'easy')}>
-                      初级探索
-                    </button>
-                    <button onClick={() => setDifficulty('medium')} style={difficultyButtonStyle(difficulty === 'medium')}>
-                      进阶分析
-                    </button>
-                    <button onClick={() => setDifficulty('hard')} style={difficultyButtonStyle(difficulty === 'hard')}>
-                      挑战模式
-                    </button>
+                  <div style={difficultyCardGridStyle}>
+                    {(['easy', 'medium', 'hard'] as DifficultyKey[]).map((key) => {
+                      const meta = difficultyMeta[key];
+                      const active = difficulty === key;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setDifficulty(key)}
+                          style={difficultyCardStyle(active)}
+                        >
+                          <div style={difficultyIconStyle}>{meta.icon}</div>
+                          <div style={difficultyTitleStyle}>{meta.title}</div>
+                          <div style={difficultyDescStyle}>{meta.desc}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div style={questionBoxStyle}>
-                  <strong style={questionTitleStyle}>当前难度问题</strong>
-                  <ul style={listStyle}>
-                    {currentQuestions.map((q) => (
-                      <li key={q} style={questionListItemStyle}>{q}</li>
+                <div>
+                  <strong style={strongTitleStyle}>当前难度问题</strong>
+                  <div style={questionCardGridStyle}>
+                    {currentQuestions.map((q, index) => (
+                      <div key={q} style={questionCardStyle}>
+                        <div style={questionBadgeStyle}>{index + 1}</div>
+                        <div style={questionTextStyle}>{q}</div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
                 <button onClick={handleLoadHints} disabled={loadingHints} style={ghostButtonStyle} className="synapse-secondary-btn">
@@ -364,6 +414,19 @@ export function StudentPage() {
                     </ul>
                   </div>
                 )}
+
+                <div>
+                  <strong style={strongTitleStyle}>建议你这样完成任务</strong>
+                  <div style={visualStepGridStyle}>
+                    {visualSteps.map((step) => (
+                      <div key={step.key} style={visualStepCardStyle}>
+                        <div style={visualStepIconStyle}>{step.icon}</div>
+                        <div style={visualStepTitleStyle}>{step.title}</div>
+                        <div style={visualStepTextStyle}>{step.shortText}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <div style={emptyTextStyle}>当前还没有任务，请先提交兴趣内容。</div>
@@ -372,7 +435,7 @@ export function StudentPage() {
 
           <section style={cardStyle} className="synapse-card">
             <div style={sectionHeaderRowStyle}>
-              <h3 style={sectionTitleStyle}>第 3 步：提交作答</h3>
+              <h3 style={sectionTitleStyle}>第 3 步：图文引导作答</h3>
               <div style={toggleRowStyle}>
                 <button onClick={() => setAnswerMode('structured')} style={answerModeButtonStyle(answerMode === 'structured')}>
                   分步作答
@@ -386,7 +449,9 @@ export function StudentPage() {
             {answerMode === 'structured' ? (
               <div style={stackStyle}>
                 <AnswerField
+                  icon="👀"
                   title="1. 我观察到了什么"
+                  helper="先看现象、看场景、看你最直接的感受。"
                   placeholder="先写你看到的现象、场景或最直观的感受。"
                   value={structuredAnswer.observation}
                   onChange={(value) => updateStructuredField('observation', value)}
@@ -395,7 +460,9 @@ export function StudentPage() {
                   recording={recordingField === 'observation'}
                 />
                 <AnswerField
+                  icon="⚖️"
                   title="2. 我做了什么比较"
+                  helper="把两个或三个例子放在一起看差别。"
                   placeholder="写你比较了哪些例子、路线、角色、情节或数据。"
                   value={structuredAnswer.comparison}
                   onChange={(value) => updateStructuredField('comparison', value)}
@@ -404,7 +471,9 @@ export function StudentPage() {
                   recording={recordingField === 'comparison'}
                 />
                 <AnswerField
+                  icon="🧠"
                   title="3. 我发现了什么规律"
+                  helper="想一想：有没有重复出现的特点？"
                   placeholder="写出你从比较中发现的共同点或差别。"
                   value={structuredAnswer.pattern}
                   onChange={(value) => updateStructuredField('pattern', value)}
@@ -413,7 +482,9 @@ export function StudentPage() {
                   recording={recordingField === 'pattern'}
                 />
                 <AnswerField
+                  icon="✅"
                   title="4. 我的最终结论"
+                  helper="最后用自己的话说出你真正发现了什么。"
                   placeholder="最后回答：我最终发现了什么？这个发现能说明什么？"
                   value={structuredAnswer.conclusion}
                   onChange={(value) => updateStructuredField('conclusion', value)}
@@ -539,7 +610,9 @@ function AutoResizeTextarea(props: {
 }
 
 function AnswerField(props: {
+  icon: string;
   title: string;
+  helper: string;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
@@ -548,9 +621,16 @@ function AnswerField(props: {
   recording: boolean;
 }) {
   return (
-    <div style={softBoxStyle}>
-      <div style={fieldHeaderStyle}>
-        <strong style={strongTitleStyle}>{props.title}</strong>
+    <div style={answerGuideCardStyle}>
+      <div style={answerGuideHeaderStyle}>
+        <div style={answerGuideTitleWrapStyle}>
+          <div style={answerGuideIconStyle}>{props.icon}</div>
+          <div>
+            <div style={answerGuideTitleStyle}>{props.title}</div>
+            <div style={answerGuideHelperStyle}>{props.helper}</div>
+          </div>
+        </div>
+
         {!props.recording ? (
           <button onClick={props.onVoice} style={ghostButtonStyle} className="synapse-secondary-btn">
             🎤 语音输入
@@ -684,6 +764,20 @@ const cardStyle: CSSProperties = {
   boxSizing: 'border-box'
 };
 
+const imageWrapStyle: CSSProperties = {
+  width: '100%',
+  borderRadius: 20,
+  overflow: 'hidden',
+  border: '1px solid rgba(148,163,184,0.18)',
+  background: 'rgba(255,255,255,0.03)'
+};
+
+const guideImageStyle: CSSProperties = {
+  width: '100%',
+  display: 'block',
+  objectFit: 'cover'
+};
+
 const sectionTitleStyle: CSSProperties = {
   margin: 0,
   fontSize: 24,
@@ -753,25 +847,10 @@ const toggleRowStyle: CSSProperties = {
   flexWrap: 'wrap'
 };
 
-const difficultyRowStyle: CSSProperties = {
-  display: 'flex',
-  gap: 10,
-  marginTop: 10,
-  flexWrap: 'wrap'
-};
-
 const stackStyle: CSSProperties = {
   display: 'grid',
   gap: 16,
   minWidth: 0
-};
-
-const fieldHeaderStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 12,
-  alignItems: 'center',
-  flexWrap: 'wrap'
 };
 
 const primaryButtonStyle: CSSProperties = {
@@ -801,23 +880,144 @@ const softBoxStyle: CSSProperties = {
   boxSizing: 'border-box'
 };
 
-const questionBoxStyle: CSSProperties = {
-  marginTop: 4,
-  padding: 18,
-  borderRadius: 18,
-  background: 'rgba(255,255,255,0.07)',
-  border: '1px solid rgba(148,163,184,0.22)',
-  color: '#eef4ff',
-  lineHeight: 1.8,
-  width: '100%',
-  minWidth: 0,
-  overflow: 'hidden',
-  boxSizing: 'border-box'
+const difficultyCardGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 12,
+  marginTop: 12
 };
 
-const questionTitleStyle: CSSProperties = {
+const difficultyCardStyle = (active: boolean): CSSProperties => ({
+  border: active ? '1px solid rgba(109,124,255,0.5)' : '1px solid rgba(148,163,184,0.16)',
+  borderRadius: 18,
+  background: active
+    ? 'linear-gradient(180deg, rgba(109,124,255,0.18), rgba(139,92,246,0.14))'
+    : 'rgba(255,255,255,0.05)',
+  padding: 16,
+  textAlign: 'left',
+  cursor: 'pointer'
+});
+
+const difficultyIconStyle: CSSProperties = {
+  fontSize: 26,
+  marginBottom: 8
+};
+
+const difficultyTitleStyle: CSSProperties = {
+  fontWeight: 800,
   color: '#ffffff',
-  fontWeight: 800
+  marginBottom: 6
+};
+
+const difficultyDescStyle: CSSProperties = {
+  color: '#d7e3f4',
+  fontSize: 13,
+  lineHeight: 1.6
+};
+
+const questionCardGridStyle: CSSProperties = {
+  display: 'grid',
+  gap: 12,
+  marginTop: 12
+};
+
+const questionCardStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '40px minmax(0, 1fr)',
+  gap: 12,
+  alignItems: 'start',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(148,163,184,0.18)',
+  borderRadius: 18,
+  padding: 14
+};
+
+const questionBadgeStyle: CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: 999,
+  background: 'linear-gradient(90deg, #6d7cff, #8b5cf6)',
+  color: '#ffffff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontWeight: 900
+};
+
+const questionTextStyle: CSSProperties = {
+  color: '#eef4ff',
+  lineHeight: 1.8,
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word'
+};
+
+const visualStepGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 12,
+  marginTop: 12
+};
+
+const visualStepCardStyle: CSSProperties = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(148,163,184,0.18)',
+  borderRadius: 18,
+  padding: 16
+};
+
+const visualStepIconStyle: CSSProperties = {
+  fontSize: 28,
+  marginBottom: 10
+};
+
+const visualStepTitleStyle: CSSProperties = {
+  color: '#ffffff',
+  fontWeight: 800,
+  marginBottom: 6
+};
+
+const visualStepTextStyle: CSSProperties = {
+  color: '#d7e3f4',
+  lineHeight: 1.7,
+  fontSize: 14
+};
+
+const answerGuideCardStyle: CSSProperties = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(148,163,184,0.18)',
+  borderRadius: 18,
+  padding: 16
+};
+
+const answerGuideHeaderStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'center',
+  flexWrap: 'wrap'
+};
+
+const answerGuideTitleWrapStyle: CSSProperties = {
+  display: 'flex',
+  gap: 12,
+  alignItems: 'flex-start'
+};
+
+const answerGuideIconStyle: CSSProperties = {
+  fontSize: 26,
+  lineHeight: 1
+};
+
+const answerGuideTitleStyle: CSSProperties = {
+  color: '#ffffff',
+  fontWeight: 800,
+  marginBottom: 4
+};
+
+const answerGuideHelperStyle: CSSProperties = {
+  color: '#c9d7ea',
+  fontSize: 14,
+  lineHeight: 1.6
 };
 
 const resultBoxStyle: CSSProperties = {
@@ -896,21 +1096,6 @@ const stepTextStyle: CSSProperties = {
   color: '#d7e3f4'
 };
 
-const difficultyButtonStyle = (active: boolean): CSSProperties => ({
-  border: 'none',
-  borderRadius: 14,
-  padding: '10px 14px',
-  background: active
-    ? 'linear-gradient(90deg, #6d7cff, #8b5cf6)'
-    : 'rgba(255,255,255,0.08)',
-  color: active ? '#fff' : '#dbe7ff',
-  fontWeight: 800,
-  cursor: 'pointer',
-  borderWidth: 1,
-  borderStyle: 'solid',
-  borderColor: active ? 'transparent' : 'rgba(109,124,255,0.18)'
-});
-
 const answerModeButtonStyle = (active: boolean): CSSProperties => ({
   border: 'none',
   borderRadius: 12,
@@ -949,14 +1134,6 @@ const listItemStyle: CSSProperties = {
   wordBreak: 'break-word',
   overflowWrap: 'break-word',
   color: '#d7e3f4'
-};
-
-const questionListItemStyle: CSSProperties = {
-  marginBottom: 10,
-  lineHeight: 1.8,
-  wordBreak: 'break-word',
-  overflowWrap: 'break-word',
-  color: '#eef4ff'
 };
 
 const strongTitleStyle: CSSProperties = {
