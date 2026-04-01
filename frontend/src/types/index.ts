@@ -19,6 +19,13 @@ export interface DifficultyLevels {
   hard: string[];
 }
 
+export interface VisualStep {
+  key: 'observe' | 'compare' | 'pattern' | 'conclusion';
+  title: string;
+  shortText: string;
+  icon: string;
+}
+
 export interface ProjectTask {
   id: string;
   studentId: string;
@@ -29,6 +36,9 @@ export interface ProjectTask {
   questions: string[];
   hints: string[];
   difficultyLevels?: DifficultyLevels;
+  visualGuideImage?: string;
+  visualGuidePrompt?: string;
+  visualSteps?: VisualStep[];
   createdAt: string;
 }
 
