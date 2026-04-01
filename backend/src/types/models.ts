@@ -8,20 +8,26 @@ export interface User {
   role: UserRole;
 }
 
-export interface ParentStudentLink {
-  parentId: string;
-  studentId: string;
-}
-
-export type InterestType = 'text' | 'image' | 'link';
-
 export interface Interest {
   id: string;
   studentId: string;
-  type: InterestType;
+  type: 'text' | 'image' | 'link';
   content: string;
   createdAt: string;
 }
+
+export type DifficultyLevels = {
+  easy: string[];
+  medium: string[];
+  hard: string[];
+};
+
+export type VisualStep = {
+  key: 'observe' | 'compare' | 'pattern' | 'conclusion';
+  title: string;
+  shortText: string;
+  icon: string;
+};
 
 export interface ProjectTask {
   id: string;
@@ -32,6 +38,10 @@ export interface ProjectTask {
   description: string;
   questions: string[];
   hints: string[];
+  difficultyLevels?: DifficultyLevels;
+  visualGuideImage?: string;
+  visualGuidePrompt?: string;
+  visualSteps?: VisualStep[];
   createdAt: string;
 }
 
@@ -43,6 +53,8 @@ export interface Submission {
   feedback: string;
   score: number;
   createdAt: string;
+  highlights?: string[];
+  nextActions?: string[];
 }
 
 export interface AbilityMetrics {
@@ -53,4 +65,9 @@ export interface AbilityMetrics {
   expression: number;
   collaboration: number;
   updatedAt: string;
+}
+
+export interface ParentStudentLink {
+  parentId: string;
+  studentId: string;
 }
