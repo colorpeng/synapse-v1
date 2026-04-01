@@ -1,25 +1,23 @@
 import { createId, interests, metrics, submissions, tasks } from '../data/store.js';
-import type { AbilityMetrics, Interest, ProjectTask, Submission } from '../types/models.js';
+import type {
+  AbilityMetrics,
+  DifficultyLevels,
+  Interest,
+  ProjectTask,
+  Submission,
+  StructuredAnswer,
+  VisualStep
+} from '../types/models.js';
 import {
+  buildDefaultVisualSteps,
+  buildFallbackVisualGuide,
   generateFeedbackWithAI,
   generateLearningPathWithAI,
   generateStudentProfileWithAI,
+  generateTaskVisualWithAI,
   generateTaskWithAI,
   hasAI
 } from './ai.service.js';
-
-type DifficultyLevels = {
-  easy: string[];
-  medium: string[];
-  hard: string[];
-};
-
-type StructuredAnswer = {
-  observation?: string;
-  comparison?: string;
-  pattern?: string;
-  conclusion?: string;
-};
 
 function buildFallbackTask(content: string) {
   const normalized = content.trim();
@@ -52,6 +50,8 @@ function buildFallbackTask(content: string) {
     '结论不需要很复杂，只要能回答“我发现了什么”就可以。'
   ];
 
+  let visualPrompt = `为“${normalized}”生成一张适合12-16岁学生的学习任务引导图，教育信息图海报风格，清晰展示观察、比较、规律、结论四个步骤，图文结合，易懂，不要复杂背景。`;
+
   if (normalized.includes('原神') || normalized.includes('地图') || normalized.includes('跑图')) {
     subject = '物理 + 数学';
     title = '开放世界跑图中的路线效率观察';
@@ -72,6 +72,9 @@ function buildFallbackTask(content: string) {
       '你能做一个 3 条路线的简易数据记录表吗？',
       '请提出一个“更省时间或更省体力”的路线优化方案。'
     ];
+
+    visualPrompt =
+      '为12-16岁学生生成一张“原神跑图路线效率观察”学习任务引导图，教育信息图海报风格，包含地图探索、路线比较、时间记录、体力消耗、最终结论四部分，配清晰分区和简洁图示，易懂，不要复杂背景，不要成人商业广告风格。';
   }
 
   return {
@@ -79,7 +82,9 @@ function buildFallbackTask(content: string) {
     subject,
     description,
     difficultyLevels,
-    hints
+    hints,
+    visualPrompt,
+    visualSteps: buildDefaultVisualSteps()
   };
 }
 
@@ -89,6 +94,9 @@ function normalizeTaskForStorage(taskData: {
   description: string;
   difficultyLevels: DifficultyLevels;
   hints: string[];
+  visualPrompt: string;
+  visualGuideImage?: string;
+  visualSteps: VisualStep[];
 }) {
   return {
     title: taskData.title,
@@ -96,11 +104,16 @@ function normalizeTaskForStorage(taskData: {
     description: taskData.description,
     questions: taskData.difficultyLevels.easy,
     hints: taskData.hints,
-    difficultyLevels: taskData.difficultyLevels
+    difficultyLevels: taskData.difficultyLevels,
+    visualPrompt: taskData.visualPrompt,
+    visualGuideImage: taskData.visualGuideImage,
+    visualSteps: taskData.visualSteps
   };
 }
 
-async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask & { difficultyLevels?: DifficultyLevels }> {
+async function generateTaskFromInterest(
+  interest: Interest
+): Promise<ProjectTask> {
   const content = interest.content.trim();
 
   let taskData = buildFallbackTask(content);
@@ -123,14 +136,35 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
         aiTask.hints.length === 3;
 
       if (isValid) {
-        taskData = aiTask;
+        taskData = {
+          ...taskData,
+          ...aiTask,
+          visualSteps: buildDefaultVisualSteps()
+        };
       }
     } catch (error) {
       console.error('❌ OpenAI 生成任务失败:', error);
     }
   }
 
-  const normalized = normalizeTaskForStorage(taskData);
+  let visualGuideImage = buildFallbackVisualGuide(
+    taskData.title,
+    taskData.subject,
+    taskData.description
+  );
+
+  if (hasAI()) {
+    try {
+      visualGuideImage = await generateTaskVisualWithAI(taskData.visualPrompt);
+    } catch (error) {
+      console.error('❌ OpenAI 生成任务引导图失败，已回退 SVG:', error);
+    }
+  }
+
+  const normalized = normalizeTaskForStorage({
+    ...taskData,
+    visualGuideImage
+  });
 
   return {
     id: createId('task'),
@@ -142,6 +176,9 @@ async function generateTaskFromInterest(interest: Interest): Promise<ProjectTask
     questions: normalized.questions,
     hints: normalized.hints,
     difficultyLevels: normalized.difficultyLevels,
+    visualGuideImage: normalized.visualGuideImage,
+    visualGuidePrompt: normalized.visualPrompt,
+    visualSteps: normalized.visualSteps,
     createdAt: new Date().toISOString()
   };
 }
@@ -162,7 +199,7 @@ export async function submitInterest(studentId: string, type: Interest['type'], 
   interests.push(interest);
 
   const task = await generateTaskFromInterest(interest);
-  tasks.push(task as ProjectTask);
+  tasks.push(task);
 
   return { interest, task };
 }
@@ -238,12 +275,12 @@ export async function submitAnswer(studentId: string, taskId: string, answer: st
     }
   }
 
-  const submission: Submission & { highlights?: string[]; nextActions?: string[] } = {
+  const submission: Submission = {
     id: createId('sub'),
     taskId,
     studentId,
     answer: formatted.plain,
-    feedback: `${feedback}\n\n亮点：${highlights.join('；')}\n下一步：${nextActions.join('；')}`,
+    feedback,
     score,
     createdAt: new Date().toISOString(),
     highlights,
