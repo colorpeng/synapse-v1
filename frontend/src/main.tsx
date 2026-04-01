@@ -1,22 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import './index.css';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { ParentPage } from './pages/ParentPage';
 import { StudentPage } from './pages/StudentPage';
 
-function ProtectedRoute({ children, role }: { children: React.ReactNode; role: 'student' | 'parent' }) {
-  const userRaw = localStorage.getItem('synapse_user');
-  const user = userRaw ? JSON.parse(userRaw) : null;
-
-  if (!user) {
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('synapse_token');
+  if (!token) {
     return <Navigate to="/" replace />;
   }
-  if (user.role !== role) {
-    return <Navigate to={user.role === 'student' ? '/student' : '/parent'} replace />;
-  }
-  return children;
+  return <>{children}</>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -25,8 +21,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Layout>
         <Routes>
           <Route path="/" element={<LoginPage />} />
-          <Route path="/student" element={<ProtectedRoute role="student"><StudentPage /></ProtectedRoute>} />
-          <Route path="/parent" element={<ProtectedRoute role="parent"><ParentPage /></ProtectedRoute>} />
+          <Route
+            path="/student"
+            element={
+              <RequireAuth>
+                <StudentPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/parent"
+            element={
+              <RequireAuth>
+                <ParentPage />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </Layout>
     </BrowserRouter>
